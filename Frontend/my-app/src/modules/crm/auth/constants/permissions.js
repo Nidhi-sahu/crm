@@ -1,0 +1,46 @@
+export const PERMISSIONS = {
+  dashboard: { view: 'dashboard:view' },
+  user: {
+    read: 'user:read',
+    create: 'user:create',
+    update: 'user:update',
+    delete: 'user:delete',
+    assignRole: 'user:assignRole',
+  },
+  role: { read: 'role:read', create: 'role:create', update: 'role:update', delete: 'role:delete' },
+  permission: { read: 'permission:read' },
+  enquiry: {
+    read: 'enquiry:read',
+    create: 'enquiry:create',
+    update: 'enquiry:update',
+    delete: 'enquiry:delete',
+  },
+  qualification: {
+    read: 'qualification:read',
+    create: 'qualification:create',
+    update: 'qualification:update',
+  },
+  lead: {
+    read: 'lead:read',
+    create: 'lead:create',
+    update: 'lead:update',
+    delete: 'lead:delete',
+    assign: 'lead:assign',
+    moveStage: 'lead:moveStage',
+  },
+  leadStage: {
+    read: 'leadStage:read',
+    create: 'leadStage:create',
+    update: 'leadStage:update',
+  },
+  comment: { read: 'comment:read', create: 'comment:create' },
+  reminder: {
+    read: 'reminder:read',
+    create: 'reminder:create',
+    update: 'reminder:update',
+  },
+  notification: { read: 'notification:read' },
+  report: { view: 'report:view' },
+  configuration: { read: 'configuration:read', update: 'configuration:update' },
+  auditLog: { read: 'auditLog:read' },
+};
