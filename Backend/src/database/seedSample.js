@@ -19,6 +19,14 @@ const SALES_PERSONS = [
   { name: 'Vikram Patel', email: 'vikram.patel@langdi.local', phone: '9810000003' },
 ];
 
+const TELE_SALES_USERS = [
+  { name: 'Pooja Tele', email: 'pooja.tele@langdi.local', phone: '9810000010' },
+];
+
+const VISIT_TEAM_USERS = [
+  { name: 'Karan Visit', email: 'karan.visit@langdi.local', phone: '9810000020' },
+];
+
 const ENQUIRIES = [
   {
     clientName: 'Rahul Jain',
@@ -108,6 +116,62 @@ const run = async () => {
       spCreated += 1;
       logger.info(`  - created sales person: ${sp.name}`);
     }
+  }
+
+  const tsRole = await roleRepo.findByName(ROLES.TELE_SALES);
+  if (tsRole) {
+    logger.info('Seeding sample Tele Sales users…');
+    for (const u of TELE_SALES_USERS) {
+      // eslint-disable-next-line no-await-in-loop
+      const exists = await userRepo.findByEmailLean(u.email);
+      if (exists) {
+        logger.info(`  - exists: ${u.email}`);
+      } else {
+        // eslint-disable-next-line no-await-in-loop
+        await userRepo.create({
+          name: u.name,
+          email: u.email,
+          phone: u.phone,
+          passwordHash,
+          roleId: tsRole._id,
+          additionalRoleIds: [],
+          additionalPermissions: [],
+          managerId: null,
+          status: 'active',
+        });
+        logger.info(`  - created Tele Sales: ${u.name}`);
+      }
+    }
+  } else {
+    logger.warn('Tele Sales role not found — skipping');
+  }
+
+  const vtRole = await roleRepo.findByName(ROLES.VISIT_TEAM);
+  if (vtRole) {
+    logger.info('Seeding sample Visit Team users…');
+    for (const u of VISIT_TEAM_USERS) {
+      // eslint-disable-next-line no-await-in-loop
+      const exists = await userRepo.findByEmailLean(u.email);
+      if (exists) {
+        logger.info(`  - exists: ${u.email}`);
+      } else {
+        // eslint-disable-next-line no-await-in-loop
+        await userRepo.create({
+          name: u.name,
+          email: u.email,
+          phone: u.phone,
+          passwordHash,
+          roleId: vtRole._id,
+          additionalRoleIds: [],
+          additionalPermissions: [],
+          managerId: null,
+          status: 'active',
+        });
+        logger.info(`  - created Visit Team: ${u.name}`);
+      }
+    }
+  } else {
+    logger.warn('Visit Team role not found — skipping');
   }
 
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@langdi.local';

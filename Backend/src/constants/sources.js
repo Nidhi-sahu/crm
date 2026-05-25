@@ -5,6 +5,8 @@ const SOURCES = {
   REFERENCE: 'reference',
   WALK_IN: 'walkIn',
   GOOGLE_ADS: 'googleAds',
+  META_ADS: 'metaAds',
+  PERSONAL_CLIENT: 'personalClient',
   OTHER: 'other',
 };
 

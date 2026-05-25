@@ -5,6 +5,7 @@ const qualificationRepo = require('../repositories/qualification.repository');
 const ApiError = require('../../../utils/ApiError');
 const { buildSkip } = require('../../../utils/pagination');
 const { REFERENCE_TYPE } = require('../../../constants/referenceTypes');
+const stageAccessGuard = require('./stageAccessGuard');
 
 const assertReferenceExists = async (referenceType, referenceId) => {
   let exists = false;
@@ -21,7 +22,13 @@ const assertReferenceExists = async (referenceType, referenceId) => {
 };
 
 const create = async (data, actor) => {
-  await assertReferenceExists(data.referenceType, data.referenceId);
+  if (data.referenceType === REFERENCE_TYPE.LEAD) {
+    const lead = await leadRepo.findById(data.referenceId);
+    if (!lead) throw ApiError.badRequest(`${data.referenceType} not found: ${data.referenceId}`);
+    stageAccessGuard.assertLeadAccess(actor, lead, 'comment');
+  } else {
+    await assertReferenceExists(data.referenceType, data.referenceId);
+  }
   const created = await commentRepo.create({
     referenceType: data.referenceType,
     referenceId: data.referenceId,

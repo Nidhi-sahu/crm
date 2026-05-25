@@ -8,6 +8,7 @@ const ROLES = require('../../../constants/roles');
 const { LEAD_TERMINAL_STATUSES } = require('../../../constants/statuses');
 const { NOTIFICATION_TYPE } = require('../../../constants/notificationTypes');
 const { REFERENCE_TYPE } = require('../../../constants/referenceTypes');
+const stageAccessGuard = require('./stageAccessGuard');
 
 const BYPASS_ROLES = [ROLES.ADMINISTRATOR];
 
@@ -36,6 +37,15 @@ const canMove = async (lead, toStageId, user) => {
   if (!isBypass && toStage.assignedRoles && toStage.assignedRoles.length > 0) {
     if (!roleName || !toStage.assignedRoles.includes(roleName)) {
       return { allowed: false, reason: `Role '${roleName || 'unknown'}' is not allowed for stage '${toStage.name}'` };
+    }
+  }
+
+  if (!isBypass) {
+    const access = stageAccessGuard.evaluateLeadAccess(user, lead, 'move stage', {
+      targetStageOrder: toStage.order,
+    });
+    if (!access.allowed) {
+      return { allowed: false, reason: access.reason };
     }
   }
 
@@ -127,6 +137,11 @@ const undoLast = async (leadId, user) => {
   if (!lead) throw ApiError.notFound('Lead not found');
   if (LEAD_TERMINAL_STATUSES.includes(lead.status)) {
     throw ApiError.badRequest(`Lead is ${lead.status} — cannot undo stage`);
+  }
+
+  const access = stageAccessGuard.evaluateLeadAccess(user, lead, 'undo stage');
+  if (!access.allowed) {
+    throw ApiError.forbidden(access.reason);
   }
 
   const last = await leadStageHistoryRepo.findLastForLead(leadId);
