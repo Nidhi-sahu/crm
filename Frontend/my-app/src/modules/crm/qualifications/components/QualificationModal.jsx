@@ -280,7 +280,12 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {questions.map((q) => (
-                <QuestionRenderer key={q.id} question={q} register={register} />
+                <div
+                  key={q.id}
+                  className="rounded-lg border border-slate-200 bg-slate-50/60 p-3"
+                >
+                  <QuestionRenderer question={q} register={register} />
+                </div>
               ))}
             </div>
           )}

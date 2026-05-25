@@ -5,6 +5,8 @@ export const ENQUIRY_SOURCES = [
   { value: 'reference', label: 'Reference' },
   { value: 'walkIn', label: 'Walk-in' },
   { value: 'googleAds', label: 'Google Ads' },
+  { value: 'metaAds', label: 'Meta Ads' },
+  { value: 'personalClient', label: 'Personal Client' },
   { value: 'other', label: 'Other' },
 ];
 

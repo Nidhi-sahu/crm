@@ -5,7 +5,6 @@ import { SelectInput } from '../../../../shared/components/SelectInput';
 import { Textarea } from '../../../../shared/components/Textarea';
 import { Alert } from '../../../../shared/components/Alert';
 import { ENQUIRY_SOURCES } from '../constants/enquirySources';
-import { CLIENT_TYPES } from '../constants/clientTypes';
 import {
   enquiryRules,
   defaultEnquiryValues,
@@ -14,9 +13,12 @@ import {
 } from '../validations/enquirySchema';
 
 const SectionHeader = ({ children }) => (
-  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-brand-600">
-    {children}
-  </h3>
+  <div className="flex items-center gap-2">
+    <span className="h-3.5 w-1 rounded-full bg-brand-500" aria-hidden="true" />
+    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-brand-600">
+      {children}
+    </h3>
+  </div>
 );
 
 export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubmit, onDirtyChange }) {
@@ -85,21 +87,13 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
             error={errors.companyName?.message}
             {...register('companyName', enquiryRules.companyName)}
           />
-          <SelectInput
-            label="Client Type"
-            placeholder="Select type"
-            options={CLIENT_TYPES}
-            {...register('clientType')}
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="ramesh@example.com"
+            error={errors.clientEmail?.message}
+            {...register('clientEmail', enquiryRules.clientEmail)}
           />
-          <div className="sm:col-span-2">
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="ramesh@example.com"
-              error={errors.clientEmail?.message}
-              {...register('clientEmail', enquiryRules.clientEmail)}
-            />
-          </div>
         </div>
       </section>
 

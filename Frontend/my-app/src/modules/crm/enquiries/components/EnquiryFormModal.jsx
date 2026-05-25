@@ -32,6 +32,7 @@ export function EnquiryFormModal({
     <Modal
       open={open}
       onClose={requestClose}
+      width="max-w-2xl"
       title={isEdit ? 'Edit Enquiry' : 'New Enquiry'}
       subtitle={
         isEdit

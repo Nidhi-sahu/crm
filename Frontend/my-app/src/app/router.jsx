@@ -9,6 +9,7 @@ import LeadsPage from '../modules/crm/leads/pages/LeadsPage';
 import UserManagementPage from '../modules/crm/users/pages/UserManagementPage';
 import ConfigurationPage from '../modules/crm/configuration/pages/ConfigurationPage';
 import ReportsPage from '../modules/crm/reports/pages/ReportsPage';
+import RolesPage from '../modules/crm/roles/pages/RolesPage';
 import { AppLayout } from '../layouts/AppLayout';
 import { ProtectedRoute } from '../shared/guards/ProtectedRoute';
 import { PublicRoute } from '../shared/guards/PublicRoute';
@@ -42,7 +43,7 @@ export const router = createBrowserRouter([
           { path: 'reminders', element: <Navigate to="/app/followups" replace /> },
           { path: 'reports', element: <ReportsPage /> },
           { path: 'users', element: <UserManagementPage /> },
-          { path: 'roles', element: <DashboardPlaceholder title="Roles" /> },
+          { path: 'roles', element: <RolesPage /> },
           { path: 'configurations', element: <ConfigurationPage /> },
           { path: 'audit-logs', element: <DashboardPlaceholder title="Audit Logs" /> },
         ],

@@ -29,6 +29,7 @@ export const DASHBOARD_GROUP = {
     { label: 'Leads', path: '/app/leads', iconKey: 'leads', requires: PERMISSIONS.lead.read },
     { label: 'Lead Assignment', path: '/app/lead-assignments', iconKey: 'assignment', requires: PERMISSIONS.lead.assign },
     { label: 'User Management', path: '/app/users', iconKey: 'users', requires: PERMISSIONS.user.read },
+    { label: 'Roles', path: '/app/roles', iconKey: 'users', requires: PERMISSIONS.role.read },
     { label: 'Configuration', path: '/app/configurations', iconKey: 'configuration', requires: PERMISSIONS.configuration.read },
     { label: 'Reports', path: '/app/reports', iconKey: 'reports', requires: PERMISSIONS.report.view },
   ],
