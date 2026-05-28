@@ -33,6 +33,14 @@ const leadSchema = new mongoose.Schema(
     },
     assignedAt: { type: Date, default: null },
 
+    visitAssignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
+    visitAssignedAt: { type: Date, default: null },
+
     temperature: {
       type: String,
       enum: TEMPERATURE_VALUES,
@@ -69,5 +77,6 @@ leadSchema.index({ assignedTo: 1, status: 1 });
 leadSchema.index({ currentStageId: 1, status: 1 });
 leadSchema.index({ status: 1, createdAt: -1 });
 leadSchema.index({ assignedTo: 1, currentStageId: 1 });
+leadSchema.index({ visitAssignedTo: 1, status: 1 });
 
 module.exports = mongoose.model('Lead', leadSchema);

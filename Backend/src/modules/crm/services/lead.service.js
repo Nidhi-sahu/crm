@@ -6,6 +6,7 @@ const leadStageHistoryRepo = require('../repositories/leadStageHistory.repositor
 const workflowEngine = require('./workflow.engine');
 const ApiError = require('../../../utils/ApiError');
 const { buildSkip } = require('../../../utils/pagination');
+const ROLES = require('../../../constants/roles');
 const {
   ENQUIRY_STATUS,
   QUALIFICATION_STATUS,
@@ -65,7 +66,7 @@ const createFromEnquiry = async (enquiryId, actor) => {
   return leadRepo.findById(lead._id);
 };
 
-const list = async (query) => {
+const list = async (query, actor) => {
   const {
     page = 1,
     limit = 20,
@@ -92,6 +93,13 @@ const list = async (query) => {
     if (from) filter.createdAt.$gte = new Date(from);
     if (to) filter.createdAt.$lte = new Date(to);
   }
+
+  // Visit Team users only see leads where they're the visit assignee
+  const actorRoleName = actor && actor.roleId && actor.roleId.name;
+  if (actorRoleName === ROLES.VISIT_TEAM) {
+    filter.visitAssignedTo = actor._id;
+  }
+
   if (search) {
     const regex = { $regex: search, $options: 'i' };
     const enquiryIds = await enquiryRepo.searchIds(search);

@@ -2,6 +2,7 @@ import { cloneElement } from 'react';
 import { LeadStageBadge } from './LeadStageBadge';
 import { LeadStatusBadge } from './LeadStatusBadge';
 import { formatDate, formatINRCompact, initialsOf, shortCode } from '../utils/leadFormatters';
+import { LEAD_COLUMNS } from '../constants/leadColumns';
 
 const Cell = ({ children, className = '' }) => (
   <td className={`px-4 py-3 align-middle text-[13px] text-slate-700 ${className}`.trim()}>
@@ -168,7 +169,9 @@ export function LeadRow({ lead, stages, visibleKeys, onView, onComment }) {
 
   return (
     <tr className="transition-colors hover:bg-slate-50">
-      {visibleKeys.map((key) => cloneElement(renderCell(key), { key }))}
+      {LEAD_COLUMNS.filter((c) => visibleKeys.includes(c.key)).map((col) =>
+        cloneElement(renderCell(col.key), { key: col.key }),
+      )}
     </tr>
   );
 }

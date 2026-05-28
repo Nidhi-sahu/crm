@@ -79,8 +79,18 @@ const STAGES_SEED = [
     isSystem: true,
   },
   {
-    name: 'Remind Call By Telesales',
+    name: 'Whatsapp & Email Confirmation Message to Clients By S/C',
     order: 2,
+    color: '#06B6D4',
+    description: 'Sales Co-ordinator sends WhatsApp & email confirmation to the client',
+    assignedRoles: [],
+    requiredFields: [],
+    slaHours: 24,
+    isSystem: true,
+  },
+  {
+    name: 'Remind Call By Telesales',
+    order: 3,
     color: '#8B5CF6',
     description: 'Telesales reminder call before the visit',
     assignedRoles: [],
@@ -90,7 +100,7 @@ const STAGES_SEED = [
   },
   {
     name: 'Visit Confirmed',
-    order: 3,
+    order: 4,
     color: '#10B981',
     description: 'Client has confirmed the property visit',
     assignedRoles: [],
@@ -99,23 +109,13 @@ const STAGES_SEED = [
     isSystem: true,
   },
   {
-    name: 'Call For Final Deal',
-    order: 4,
-    color: '#F59E0B',
-    description: 'Call with the client to push for the final deal',
-    assignedRoles: [],
-    requiredFields: [],
-    slaHours: 48,
-    isSystem: true,
-  },
-  {
-    name: 'Call For Negotiation and Family Visit',
+    name: 'Feedback Call by Sales Co-ordinator',
     order: 5,
-    color: '#EC4899',
-    description: 'Negotiation call and family visit coordination',
+    color: '#22C55E',
+    description: 'Sales Co-ordinator collects feedback from the client',
     assignedRoles: [],
     requiredFields: [],
-    slaHours: 48,
+    slaHours: 24,
     isSystem: true,
   },
   {
@@ -129,23 +129,23 @@ const STAGES_SEED = [
     isSystem: true,
   },
   {
-    name: 'Feedback Call by Sales Co-ordinator',
+    name: 'Call For Negotiation and Family Visit',
     order: 7,
-    color: '#22C55E',
-    description: 'Sales Co-ordinator collects feedback from the client',
+    color: '#EC4899',
+    description: 'Negotiation call and family visit coordination',
     assignedRoles: [],
     requiredFields: [],
-    slaHours: 24,
+    slaHours: 48,
     isSystem: true,
   },
   {
-    name: 'Whatsapp & Email Confirmation Message to Clients By S/C',
+    name: 'Call For Final Deal',
     order: 8,
-    color: '#06B6D4',
-    description: 'Sales Co-ordinator sends WhatsApp & email confirmation to the client',
+    color: '#F59E0B',
+    description: 'Call with the client to push for the final deal',
     assignedRoles: [],
     requiredFields: [],
-    slaHours: 24,
+    slaHours: 48,
     isFinal: true,
     isSystem: true,
   },
@@ -154,11 +154,31 @@ const STAGES_SEED = [
 const seedStages = async () => {
   logger.info('Seeding lead stages…');
 
-  for (const stage of STAGES_SEED) {
-    await leadStageRepo.upsertByOrder(stage.order, { ...stage, allowedNextStages: [] });
-    logger.info(`  - ${stage.name} (order ${stage.order})`);
+  // Phase 1: shift existing stages to temp orders (1000+) to avoid unique-constraint
+  // conflicts when reordering or renaming. Names are stable, so we'll match by name.
+  const existing = await leadStageRepo.findAll();
+  if (existing.length > 0) {
+    await leadStageRepo.bulkReorder(
+      existing.map((s, idx) => ({ id: s._id, order: 1000 + idx })),
+    );
   }
 
+  // Phase 2: upsert by NAME with final order + fields (preserves _id for existing
+  // entries — existing leads' currentStageId references remain valid).
+  // Strip `name` from data since the repository sets it via $setOnInsert
+  // (can't be in both $set and $setOnInsert simultaneously).
+  for (const stage of STAGES_SEED) {
+    const { name, ...rest } = stage;
+    await leadStageRepo.upsertByName(name, {
+      ...rest,
+      isInitial: !!stage.isInitial,
+      isFinal: !!stage.isFinal,
+      allowedNextStages: [],
+    });
+    logger.info(`  - ${name} (order ${stage.order})`);
+  }
+
+  // Phase 3: rebuild allowedNextStages based on the now-final order.
   const all = await leadStageRepo.findAll();
   const byOrder = Object.fromEntries(all.map((s) => [s.order, s]));
 

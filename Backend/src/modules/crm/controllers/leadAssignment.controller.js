@@ -13,6 +13,16 @@ const unassign = asyncHandler(async (req, res) => {
   ApiResponse.ok(res, { lead }, 'Lead unassigned');
 });
 
+const assignVisit = asyncHandler(async (req, res) => {
+  const lead = await leadAssignmentService.assignVisit(req.params.id, req.body, req.user);
+  ApiResponse.ok(res, { lead }, 'Visit assigned');
+});
+
+const unassignVisit = asyncHandler(async (req, res) => {
+  const lead = await leadAssignmentService.unassignVisit(req.params.id, req.body, req.user);
+  ApiResponse.ok(res, { lead }, 'Visit unassigned');
+});
+
 const getHistory = asyncHandler(async (req, res) => {
   const history = await leadAssignmentService.getHistoryForLead(req.params.id);
   ApiResponse.ok(res, history, 'Assignment history fetched');
@@ -28,4 +38,4 @@ const autoRun = asyncHandler(async (req, res) => {
   ApiResponse.ok(res, result, 'Auto-assignment sweep completed');
 });
 
-module.exports = { assign, unassign, getHistory, list, autoRun };
+module.exports = { assign, unassign, assignVisit, unassignVisit, getHistory, list, autoRun };

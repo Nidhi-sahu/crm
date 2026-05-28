@@ -1,6 +1,8 @@
 import { leadsAPI } from './leadsAPI';
 import { leadStagesAPI } from './leadStagesAPI';
 import { leadCommentsAPI } from './leadCommentsAPI';
+import { rolesAPI } from '../../roles/services/rolesAPI';
+import { usersAPI } from '../../users/services/usersAPI';
 import { uiStatusToBackend } from '../constants/leadStatuses';
 
 const unwrap = (res) => res?.data?.data ?? res?.data ?? null;
@@ -68,6 +70,32 @@ export const leadsService = {
 
   async markDropped(id, reason) {
     return extractLead(unwrap(await leadsAPI.markDropped(id, reason)));
+  },
+
+  async assignVisit(id, visitAssignedTo) {
+    return extractLead(unwrap(await leadsAPI.assignVisit(id, { visitAssignedTo })));
+  },
+
+  async unassignVisit(id, reason) {
+    return extractLead(unwrap(await leadsAPI.unassignVisit(id, { reason })));
+  },
+
+  async listVisitTeamMembers() {
+    const rolesData = unwrap(await rolesAPI.list());
+    const roles = Array.isArray(rolesData?.items)
+      ? rolesData.items
+      : Array.isArray(rolesData)
+      ? rolesData
+      : [];
+    const visitTeamRole = roles.find((r) => r.name === 'Visit Team');
+    if (!visitTeamRole) return [];
+
+    const usersData = unwrap(await usersAPI.list({ roleId: visitTeamRole._id, limit: 100 }));
+    return Array.isArray(usersData?.items)
+      ? usersData.items
+      : Array.isArray(usersData)
+      ? usersData
+      : [];
   },
 
   async listStages() {

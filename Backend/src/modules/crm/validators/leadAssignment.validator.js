@@ -17,6 +17,21 @@ const unassign = {
   }),
 };
 
+const assignVisit = {
+  params: idParam,
+  body: Joi.object({
+    visitAssignedTo: objectId.required(),
+    reason: Joi.string().trim().max(500).optional().allow(''),
+  }),
+};
+
+const unassignVisit = {
+  params: idParam,
+  body: Joi.object({
+    reason: Joi.string().trim().max(500).optional().allow(''),
+  }),
+};
+
 const autoRun = {
   body: Joi.object({
     delayMinutes: Joi.number().integer().min(0).optional(),
@@ -38,4 +53,4 @@ const list = {
 
 const byId = { params: idParam };
 
-module.exports = { assign, unassign, autoRun, list, byId };
+module.exports = { assign, unassign, assignVisit, unassignVisit, autoRun, list, byId };

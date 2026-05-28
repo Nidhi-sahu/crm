@@ -115,6 +115,68 @@ const unassign = async (leadId, { reason }, actor) => {
   return leadRepo.findById(leadId);
 };
 
+const assignVisit = async (leadId, { visitAssignedTo, reason }, actor) => {
+  const lead = await leadRepo.findById(leadId);
+  assertAssignable(lead);
+
+  const assignee = await userRepo.findById(visitAssignedTo);
+  if (!assignee) throw ApiError.badRequest('Visit assignee not found');
+  if (assignee.status !== 'active') throw ApiError.badRequest('Visit assignee is not active');
+
+  const currentVisitAssigneeId =
+    lead.visitAssignedTo && (lead.visitAssignedTo._id || lead.visitAssignedTo);
+  if (currentVisitAssigneeId && String(currentVisitAssigneeId) === String(visitAssignedTo)) {
+    throw ApiError.badRequest('Visit is already assigned to this user');
+  }
+
+  await leadRepo.setVisitAssignment(leadId, { visitAssignedTo, actor });
+
+  await notificationService.notify({
+    userId: visitAssignedTo,
+    type: NOTIFICATION_TYPE.LEAD_ASSIGNED,
+    title: 'Site visit assigned to you',
+    body: reason || `Lead ${leadId} visit`,
+    referenceType: REFERENCE_TYPE.LEAD,
+    referenceId: leadId,
+    meta: { leadId, assignedBy: actor._id, previousVisitAssignee: currentVisitAssigneeId },
+  });
+
+  auditLogService.log({
+    module: 'leadAssignment',
+    action: 'assignVisit',
+    actor,
+    refType: 'lead',
+    refId: leadId,
+    oldData: { visitAssignedTo: currentVisitAssigneeId },
+    newData: { visitAssignedTo, reason },
+  });
+
+  return leadRepo.findById(leadId);
+};
+
+const unassignVisit = async (leadId, { reason }, actor) => {
+  const lead = await leadRepo.findById(leadId);
+  assertAssignable(lead);
+
+  const currentVisitAssigneeId =
+    lead.visitAssignedTo && (lead.visitAssignedTo._id || lead.visitAssignedTo);
+  if (!currentVisitAssigneeId) throw ApiError.badRequest('Lead has no visit assignee');
+
+  await leadRepo.setVisitAssignment(leadId, { visitAssignedTo: null, actor });
+
+  auditLogService.log({
+    module: 'leadAssignment',
+    action: 'unassignVisit',
+    actor,
+    refType: 'lead',
+    refId: leadId,
+    oldData: { visitAssignedTo: currentVisitAssigneeId },
+    newData: { visitAssignedTo: null, reason },
+  });
+
+  return leadRepo.findById(leadId);
+};
+
 const pickLeastLoadedAssignee = async (targetRoleName) => {
   const role = await roleRepo.findByName(targetRoleName);
   if (!role) {
@@ -242,6 +304,8 @@ const list = async (query) => {
 module.exports = {
   assign,
   unassign,
+  assignVisit,
+  unassignVisit,
   autoAssignOne,
   runAutoAssignSweep,
   getHistoryForLead,

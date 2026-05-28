@@ -77,6 +77,7 @@ export default function LeadsPage() {
 
   const canEdit = can(PERMISSIONS.lead.update);
   const canMoveStage = can(PERMISSIONS.lead.moveStage);
+  const canAssign = can(PERMISSIONS.lead.assign);
 
   const onView = (lead) => {
     clearSaveError();
@@ -235,6 +236,8 @@ export default function LeadsPage() {
         onLoadComments={loadComments}
         canEdit={canEdit}
         canMoveStage={canMoveStage}
+        canAssign={canAssign}
+        onVisitChanged={reload}
       />
 
       <LeadCommentsModal

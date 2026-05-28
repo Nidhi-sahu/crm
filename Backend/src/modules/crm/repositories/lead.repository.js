@@ -11,6 +11,7 @@ const findById = (id) =>
     })
     .populate({ path: 'currentStageId', select: 'name order color isFinal allowedNextStages' })
     .populate({ path: 'assignedTo', select: 'name email' })
+    .populate({ path: 'visitAssignedTo', select: 'name email' })
     .populate({ path: 'createdBy', select: 'name email' })
     .lean();
 
@@ -22,8 +23,9 @@ const findAll = ({ filter = {}, sort = { createdAt: -1 }, skip = 0, limit = 20 }
       path: 'enquiryId',
       select: 'clientName clientPhone clientEmail companyName requirement',
     })
-    .populate({ path: 'currentStageId', select: 'name order color allowedNextStages' })
+    .populate({ path: 'currentStageId', select: 'name order color isFinal allowedNextStages' })
     .populate({ path: 'assignedTo', select: 'name email' })
+    .populate({ path: 'visitAssignedTo', select: 'name email' })
     .sort(sort)
     .skip(skip)
     .limit(limit)
@@ -96,6 +98,20 @@ const setAssignment = (leadId, { assignedTo, actor }) =>
     { new: true, runValidators: true }
   );
 
+const setVisitAssignment = (leadId, { visitAssignedTo, actor }) =>
+  Lead.findByIdAndUpdate(
+    leadId,
+    {
+      $set: {
+        visitAssignedTo: visitAssignedTo || null,
+        visitAssignedAt: visitAssignedTo ? new Date() : null,
+        lastActivityAt: new Date(),
+        updatedBy: actor && actor._id,
+      },
+    },
+    { new: true, runValidators: true }
+  );
+
 const getWorkloadByUserIds = (userIds) =>
   Lead.aggregate([
     {
@@ -121,5 +137,6 @@ module.exports = {
   findUnassignedOlderThan,
   claimForAssignment,
   setAssignment,
+  setVisitAssignment,
   getWorkloadByUserIds,
 };

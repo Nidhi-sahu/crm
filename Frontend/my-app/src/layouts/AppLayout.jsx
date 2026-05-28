@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../modules/crm/auth/hooks/useAuth';
-import { DASHBOARD_GROUP, DASHBOARD_PATH, ICON_PATHS } from './menuConfig';
+import { CRM_GROUP, ICON_PATHS } from './menuConfig';
 
 const NavIcon = ({ name, size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -47,19 +47,21 @@ const BellIcon = () => (
 );
 
 const Brand = () => (
-  <div className="flex items-center gap-2.5">
-    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-300 text-slate-700">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path
-          d="M4 20V9.5L12 4l8 5.5V20H14v-6h-4v6H4Z"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
-    <p className="text-sm font-semibold text-slate-900">CRM</p>
-  </div>
+  <div
+    className="h-14 w-40 bg-brand-500"
+    style={{
+      WebkitMaskImage: 'url(/LBD%20LOGO.PNG)',
+      maskImage: 'url(/LBD%20LOGO.PNG)',
+      WebkitMaskSize: 'contain',
+      maskSize: 'contain',
+      WebkitMaskPosition: 'left center',
+      maskPosition: 'left center',
+      WebkitMaskRepeat: 'no-repeat',
+      maskRepeat: 'no-repeat',
+    }}
+    role="img"
+    aria-label="Langdi Builders"
+  />
 );
 
 const childItemClasses = ({ isActive }) =>
@@ -74,27 +76,35 @@ function SidebarNav({ visibleChildren, onNavigate, expanded, setExpanded }) {
   return (
     <nav className="space-y-1">
       <div>
-        <NavLink
-          to={DASHBOARD_PATH}
-          onClick={() => {
-            if (visibleChildren.length > 0) setExpanded((v) => !v);
-            if (onNavigate) onNavigate();
-          }}
-          end
-          className={({ isActive }) =>
-            [
-              'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
-              isActive
-                ? 'bg-brand-100 text-brand-600 font-semibold'
-                : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900',
-            ].join(' ')
-          }
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="flex w-full items-center justify-between gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
         >
-          <span className="shrink-0">
-            <NavIcon name={DASHBOARD_GROUP.iconKey} />
+          <span className="flex items-center gap-2.5">
+            <span className="shrink-0">
+              <NavIcon name={CRM_GROUP.iconKey} />
+            </span>
+            <span>{CRM_GROUP.label}</span>
           </span>
-          <span>{DASHBOARD_GROUP.label}</span>
-        </NavLink>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+            className={`text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          >
+            <path
+              d="m6 9 6 6 6-6"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
 
         {expanded && visibleChildren.length > 0 && (
           <ul className="mt-1 space-y-0.5 border-l border-slate-100 pl-3.5">
@@ -211,7 +221,7 @@ export function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [groupExpanded, setGroupExpanded] = useState(false);
 
-  const visibleChildren = DASHBOARD_GROUP.children.filter(
+  const visibleChildren = CRM_GROUP.children.filter(
     (item) => !item.requires || can(item.requires),
   );
 
@@ -224,7 +234,7 @@ export function AppLayout() {
     <div className="flex min-h-screen bg-slate-50 text-slate-800">
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white p-5 lg:flex">
-        <div className="mb-6">
+        <div className="mb-3">
           <Brand />
         </div>
         <SidebarNav
@@ -249,7 +259,7 @@ export function AppLayout() {
             aria-hidden="true"
           />
           <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-white p-5 shadow-card">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-3 flex items-center justify-between">
               <Brand />
               <button
                 onClick={() => setDrawerOpen(false)}

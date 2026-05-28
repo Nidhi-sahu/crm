@@ -1,6 +1,6 @@
 const ROLES = require('../../../constants/roles');
 
-const VISIT_STAGE_ORDER = 3; // 'Visit Confirmed' = boundary
+const VISIT_STAGE_ORDER = 4; // 'Visit Confirmed' = boundary (position 4 after Whatsapp moved to 3)
 
 const getRoleName = (user) => {
   if (!user || !user.roleId) return null;
@@ -12,9 +12,14 @@ const getRoleName = (user) => {
  * Returns { allowed, reason } — caller chooses how to surface.
  *
  * Rule (Tele Sales):
- *   - Only stages 1–3 (up to and including 'Visit Confirmed').
- *   - Cannot act when current stage > 3.
- *   - Cannot move TO a stage > 3 (so they can't push past the boundary).
+ *   - Pre-visit stages only (stages 1–3, BEFORE 'Visit Confirmed').
+ *   - Cannot act when current stage >= 4.
+ *   - Cannot move TO a stage >= 4.
+ *
+ * Rule (Visit Team — comment action only):
+ *   - Can comment only from Visit stage onwards (stage >= 3).
+ *   - Only the assigned Visit Team member (visitAssignedTo) can comment.
+ *   - Other Visit Team members can still view.
  *
  * Rule (Sales Person — comment action only):
  *   - Lead owner: can comment on any stage.
@@ -35,16 +40,37 @@ const evaluateLeadAccess = (user, lead, action = 'act', extra = {}) => {
     (lead.currentStageId && lead.currentStageId.order) || 0;
 
   if (roleName === ROLES.TELE_SALES) {
-    if (currentStageOrder > VISIT_STAGE_ORDER) {
+    if (currentStageOrder >= VISIT_STAGE_ORDER) {
       return {
         allowed: false,
-        reason: `Tele Sales cannot ${action} after the Visit stage`,
+        reason: `Tele Sales cannot ${action} from the Visit stage onwards`,
       };
     }
-    if (extra.targetStageOrder && extra.targetStageOrder > VISIT_STAGE_ORDER) {
+    if (extra.targetStageOrder && extra.targetStageOrder >= VISIT_STAGE_ORDER) {
       return {
         allowed: false,
-        reason: 'Tele Sales cannot move lead past the Visit stage',
+        reason: 'Tele Sales cannot move lead to or past the Visit stage',
+      };
+    }
+  }
+
+  // Visit Team — comment access only from Visit stage onwards,
+  // and only the user this lead's visit is assigned to.
+  if (roleName === ROLES.VISIT_TEAM && action === 'comment') {
+    if (currentStageOrder < VISIT_STAGE_ORDER) {
+      return {
+        allowed: false,
+        reason: 'Visit Team can comment only from the Visit stage onwards',
+      };
+    }
+    const visitOwnerId =
+      lead.visitAssignedTo && (lead.visitAssignedTo._id || lead.visitAssignedTo);
+    const isVisitOwner =
+      visitOwnerId && String(visitOwnerId) === String(user._id);
+    if (!isVisitOwner) {
+      return {
+        allowed: false,
+        reason: 'Only the assigned Visit Team member can comment on this lead',
       };
     }
   }

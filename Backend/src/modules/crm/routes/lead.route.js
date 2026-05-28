@@ -26,6 +26,9 @@ router.post('/:id/undo-stage', rbac('lead:moveStage'), validate(v.byId), ctrl.un
 router.post('/:id/assign', rbac('lead:assign'), validate(av.assign), assignCtrl.assign);
 router.post('/:id/unassign', rbac('lead:assign'), validate(av.unassign), assignCtrl.unassign);
 
+router.post('/:id/assign-visit', rbac('lead:assign'), validate(av.assignVisit), assignCtrl.assignVisit);
+router.post('/:id/unassign-visit', rbac('lead:assign'), validate(av.unassignVisit), assignCtrl.unassignVisit);
+
 router.post('/:id/mark-won', rbac('lead:update'), validate(v.byId), ctrl.markWon);
 router.post('/:id/mark-lost', rbac('lead:update'), validate(v.markLost), ctrl.markLost);
 router.post('/:id/mark-dropped', rbac('lead:update'), validate(v.markDropped), ctrl.markDropped);

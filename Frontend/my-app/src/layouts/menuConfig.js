@@ -1,6 +1,7 @@
 import { PERMISSIONS } from '../modules/crm/auth/constants/permissions';
 
 export const ICON_PATHS = {
+  crm: 'M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z',
   dashboard: 'M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-5H4v5Zm10-13h6V4h-6v3Z',
   enquiries: 'M21 11.5a8.5 8.5 0 0 1-8.5 8.5H7l-4 3v-7.5A8.5 8.5 0 1 1 21 11.5Z',
   qualification: 'M5 12.5 10 17l9-10',
@@ -19,12 +20,12 @@ export const ICON_PATHS = {
 
 export const DASHBOARD_PATH = '/app/dashboard';
 
-export const DASHBOARD_GROUP = {
-  label: 'Dashboard',
-  path: DASHBOARD_PATH,
-  iconKey: 'dashboard',
+export const CRM_GROUP = {
+  label: 'CRM',
+  iconKey: 'crm',
   requires: PERMISSIONS.dashboard.view,
   children: [
+    { label: 'Dashboard', path: DASHBOARD_PATH, iconKey: 'dashboard', requires: PERMISSIONS.dashboard.view },
     { label: 'Enquiries', path: '/app/enquiries', iconKey: 'enquiries', requires: PERMISSIONS.enquiry.read },
     { label: 'Leads', path: '/app/leads', iconKey: 'leads', requires: PERMISSIONS.lead.read },
     { label: 'Lead Assignment', path: '/app/lead-assignments', iconKey: 'assignment', requires: PERMISSIONS.lead.assign },

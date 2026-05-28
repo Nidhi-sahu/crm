@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../../../../shared/components/Modal';
 import { Button } from '../../../../shared/components/Button';
 import { Input } from '../../../../shared/components/Input';
+import { SelectInput } from '../../../../shared/components/SelectInput';
 import { Textarea } from '../../../../shared/components/Textarea';
 import { Alert } from '../../../../shared/components/Alert';
 import { Skeleton } from '../../dashboard/components/Skeleton';
@@ -11,6 +12,7 @@ import { DropLeadDialog } from './DropLeadDialog';
 import { StageProgress } from './StageProgress';
 import { StageMoveDialog } from './StageMoveDialog';
 import { formatDate, initialsOf, shortCode } from '../utils/leadFormatters';
+import { leadsService } from '../services/leadsService';
 
 const SectionHeader = ({ children }) => (
   <h3 className="text-[11px] font-semibold uppercase tracking-wider text-brand-600">
@@ -68,6 +70,8 @@ export function LeadDetailsModal({
   onLoadComments,
   canEdit,
   canMoveStage,
+  canAssign = false,
+  onVisitChanged,
 }) {
   const [requirement, setRequirement] = useState('');
   const [plannedValue, setPlannedValue] = useState('');
@@ -76,6 +80,12 @@ export function LeadDetailsModal({
   const [comment, setComment] = useState('');
   const [dropOpen, setDropOpen] = useState(false);
   const [stageDialog, setStageDialog] = useState({ open: false, mode: 'move' });
+
+  const [localVisitAssignee, setLocalVisitAssignee] = useState(null);
+  const [visitMembers, setVisitMembers] = useState([]);
+  const [visitEditing, setVisitEditing] = useState(false);
+  const [visitSelected, setVisitSelected] = useState('');
+  const [visitSubmitting, setVisitSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open || !lead) return;
@@ -88,12 +98,56 @@ export function LeadDetailsModal({
     );
     setPlannedDate(isoDateInput(lead.plannedStageAt));
     setComment('');
+    setLocalVisitAssignee(lead.visitAssignedTo || null);
+    setVisitEditing(false);
     if (lead._id) {
       onLoadHistory?.(lead._id);
       onLoadComments?.(lead._id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lead?._id]);
+
+  const startEditVisit = async () => {
+    setVisitEditing(true);
+    setVisitSelected(localVisitAssignee?._id || '');
+    if (visitMembers.length === 0) {
+      try {
+        const members = await leadsService.listVisitTeamMembers();
+        setVisitMembers(members);
+      } catch (_) {
+        setVisitMembers([]);
+      }
+    }
+  };
+
+  const submitVisitAssign = async () => {
+    if (!lead?._id || !visitSelected) return;
+    setVisitSubmitting(true);
+    try {
+      const updated = await leadsService.assignVisit(lead._id, visitSelected);
+      setLocalVisitAssignee(updated?.visitAssignedTo || null);
+      setVisitEditing(false);
+      if (onVisitChanged) onVisitChanged();
+    } catch (_) {
+      // surface via existing toast pattern from parent — for now silent
+    } finally {
+      setVisitSubmitting(false);
+    }
+  };
+
+  const handleUnassignVisit = async () => {
+    if (!lead?._id || !localVisitAssignee) return;
+    setVisitSubmitting(true);
+    try {
+      await leadsService.unassignVisit(lead._id);
+      setLocalVisitAssignee(null);
+      if (onVisitChanged) onVisitChanged();
+    } catch (_) {
+      // silent
+    } finally {
+      setVisitSubmitting(false);
+    }
+  };
 
   const nextStage = useMemo(() => findNextStage(lead || {}, stages), [lead, stages]);
 
@@ -258,6 +312,79 @@ export function LeadDetailsModal({
                   ) : null
                 }
               />
+
+              <div className="sm:col-span-2 space-y-0.5">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                  Visit Assigned To
+                </p>
+                {visitEditing ? (
+                  <div className="flex flex-wrap items-end gap-2 pt-0.5">
+                    <div className="min-w-[220px] flex-1 sm:flex-none">
+                      <SelectInput
+                        placeholder="Select Visit Team member"
+                        options={visitMembers.map((u) => ({ value: u._id, label: u.name }))}
+                        value={visitSelected}
+                        onChange={(e) => setVisitSelected(e.target.value)}
+                        disabled={visitSubmitting}
+                        className="!py-1.5 !text-sm"
+                      />
+                    </div>
+                    <Button
+                      variant="primary"
+                      onClick={submitVisitAssign}
+                      loading={visitSubmitting}
+                      disabled={visitSubmitting || !visitSelected}
+                      className="!gap-1.5 !rounded-md !px-3 !py-1.5 !text-xs"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setVisitEditing(false)}
+                      disabled={visitSubmitting}
+                      className="!gap-1.5 !rounded-md !px-3 !py-1.5 !text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3 pt-0.5">
+                    {localVisitAssignee ? (
+                      <span className="inline-flex items-center gap-2 text-sm text-slate-800">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700">
+                          {initialsOf(localVisitAssignee.name)}
+                        </span>
+                        {localVisitAssignee.name}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-slate-300">— Not assigned —</span>
+                    )}
+                    {canAssign && !isClosed && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={startEditVisit}
+                          disabled={visitSubmitting}
+                          className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-brand-600 transition-colors hover:border-brand-200 hover:bg-brand-50 disabled:opacity-50"
+                        >
+                          {localVisitAssignee ? 'Change' : 'Assign'}
+                        </button>
+                        {localVisitAssignee && (
+                          <button
+                            type="button"
+                            onClick={handleUnassignVisit}
+                            disabled={visitSubmitting}
+                            className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-rose-600 transition-colors hover:border-rose-200 hover:bg-rose-50 disabled:opacity-50"
+                          >
+                            Unassign
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="sm:col-span-2">
                 <Textarea
                   label="Requirement"

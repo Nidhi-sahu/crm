@@ -9,7 +9,7 @@ const createFromEnquiry = asyncHandler(async (req, res) => {
 });
 
 const list = asyncHandler(async (req, res) => {
-  const { items, total, page, limit } = await leadService.list(req.query);
+  const { items, total, page, limit } = await leadService.list(req.query, req.user);
   ApiResponse.ok(res, items, 'Leads fetched', buildMeta({ page, limit, total }));
 });
 
