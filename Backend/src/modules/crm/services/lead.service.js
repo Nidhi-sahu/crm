@@ -3,6 +3,9 @@ const enquiryRepo = require('../repositories/enquiry.repository');
 const qualificationRepo = require('../repositories/qualification.repository');
 const leadStageRepo = require('../repositories/leadStage.repository');
 const leadStageHistoryRepo = require('../repositories/leadStageHistory.repository');
+const reminderRepo = require('../repositories/reminder.repository');
+const visitReportRepo = require('../repositories/visitReport.repository');
+const commentRepo = require('../repositories/comment.repository');
 const workflowEngine = require('./workflow.engine');
 const ApiError = require('../../../utils/ApiError');
 const { buildSkip } = require('../../../utils/pagination');
@@ -107,6 +110,39 @@ const list = async (query, actor) => {
       { project: regex },
       { enquiryId: { $in: enquiryIds } },
     ];
+  }
+
+  // Date-based filter: leads whose follow-up / planned date / visit / activity
+  // falls on a given day. followupToday = follow-ups (planned date or reminder) due today.
+  if (query.followupToday || query.activityDate) {
+    const day = query.followupToday ? new Date() : new Date(query.activityDate);
+    const start = new Date(day);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(day);
+    end.setHours(23, 59, 59, 999);
+    const inRange = { $gte: start, $lte: end };
+
+    const reminderIds = await reminderRepo.findLeadIdsBetween(start, end);
+    const dateOr = [{ plannedStageAt: inRange }];
+    if (reminderIds.length) dateOr.push({ _id: { $in: reminderIds } });
+
+    if (query.activityDate) {
+      const [visitIds, commentIds] = await Promise.all([
+        visitReportRepo.findLeadIdsBetween(start, end),
+        commentRepo.findLeadIdsBetween(start, end),
+      ]);
+      dateOr.push({ actualStageAt: inRange });
+      const extra = [...new Set([...visitIds, ...commentIds])];
+      if (extra.length) dateOr.push({ _id: { $in: extra } });
+    }
+
+    // Combine with an existing $or (from search) without clobbering it.
+    if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, { $or: dateOr }];
+      delete filter.$or;
+    } else {
+      filter.$or = dateOr;
+    }
   }
 
   const skip = buildSkip({ page, limit });

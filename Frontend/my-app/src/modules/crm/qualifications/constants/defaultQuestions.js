@@ -4,7 +4,7 @@ export const DEFAULT_QUALIFICATION_QUESTIONS = [
   { id: 'loan',          text: 'Loan required?',             type: 'radio',  options: ['Yes', 'No'] },
   { id: 'timeline',      text: 'Buying timeline?',           type: 'select', options: ['<1 month', '1-3 months', '3-6 months', '6+ months'] },
   { id: 'lookingFor',    text: 'Looking For:',               type: 'radio',  options: ['Self', 'Family Member'] },
-  { id: 'purpose',       text: 'Investment or self-use?',    type: 'radio',  options: ['Investment', 'Self-use'] },
+  { id: 'purpose',       text: 'Investment or self-use?',    type: 'radio',  options: ['Investment', 'End User'] },
   { id: 'location',      text: 'Preferred location?',        type: 'text' },
 ];
 

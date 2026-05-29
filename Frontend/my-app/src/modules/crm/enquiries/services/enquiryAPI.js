@@ -29,4 +29,13 @@ export const enquiryAPI = {
   remove(id) {
     return axiosClient.delete(`${BASE}/${id}`);
   },
+  checkPhone(phone, excludeId) {
+    return axiosClient.get(`${BASE}/check-phone`, { params: { phone, excludeId } });
+  },
+  bulkImport(payload) {
+    return axiosClient.post(`${BASE}/bulk-import`, payload);
+  },
+  bulkAssign(payload) {
+    return axiosClient.post(`${BASE}/bulk-assign`, payload);
+  },
 };

@@ -18,6 +18,9 @@ router.get('/:id', rbac('lead:read'), validate(v.byId), ctrl.getOne);
 router.get('/:id/history', rbac('lead:read'), validate(v.byId), ctrl.getHistory);
 router.get('/:id/assignments', rbac('lead:read'), validate(av.byId), assignCtrl.getHistory);
 
+router.get('/:id/visit-report', rbac('lead:read'), validate(v.byId), ctrl.listVisitReports);
+router.post('/:id/visit-report', rbac('lead:update'), validate(v.visitReport), ctrl.createVisitReport);
+
 router.patch('/:id', rbac('lead:update'), validate(v.update), ctrl.update);
 
 router.post('/:id/move-stage', rbac('lead:moveStage'), validate(v.moveStage), ctrl.moveStage);

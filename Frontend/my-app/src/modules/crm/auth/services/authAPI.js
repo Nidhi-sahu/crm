@@ -5,6 +5,9 @@ export const authAPI = {
   login(payload) {
     return axiosClient.post(API_ROUTES.auth.login, payload);
   },
+  googleLogin(payload) {
+    return axiosClient.post(API_ROUTES.auth.google, payload);
+  },
   refresh() {
     return axiosClient.post(API_ROUTES.auth.refresh, {});
   },

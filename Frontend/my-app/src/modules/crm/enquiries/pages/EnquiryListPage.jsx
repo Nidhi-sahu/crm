@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useEnquiryList } from '../hooks/useEnquiryList';
+import { useEnquiryColumns } from '../hooks/useEnquiryColumns';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { EnquiryKPIs } from '../components/EnquiryKPIs';
 import { EnquiryFiltersBar } from '../components/EnquiryFiltersBar';
 import { EnquiryTable } from '../components/EnquiryTable';
+import { ManageColumnsModal } from '../components/ManageColumnsModal';
+import { BulkImportModal } from '../components/BulkImportModal';
 import { Pagination } from '../components/Pagination';
 import { EnquiryFormModal } from '../components/EnquiryFormModal';
 import { EnquiryDetailsModal } from '../components/EnquiryDetailsModal';
@@ -14,6 +17,7 @@ import { PERMISSIONS } from '../../auth/constants/permissions';
 
 export default function EnquiryListPage() {
   const { can } = useAuth();
+  const { columns, visibleColumns, rename, toggle, addColumn, reset } = useEnquiryColumns();
   const {
     items,
     pagination,
@@ -40,6 +44,8 @@ export default function EnquiryListPage() {
   const [formModal, setFormModal] = useState({ open: false, mode: 'create', enquiry: null });
   const [detailsModal, setDetailsModal] = useState({ open: false, enquiry: null });
   const [qualifyModal, setQualifyModal] = useState({ open: false, enquiry: null });
+  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [toast, setToast] = useState({ open: false, tone: 'success', message: '' });
 
   if (!can(PERMISSIONS.enquiry.read)) {
@@ -108,6 +114,7 @@ export default function EnquiryListPage() {
         filters={filters}
         onPatch={setFilter}
         onAdd={canCreate ? openCreate : undefined}
+        onBulkImport={canCreate ? () => setBulkImportOpen(true) : undefined}
       />
 
       {isError && !isLoading && (
@@ -127,6 +134,7 @@ export default function EnquiryListPage() {
 
       <EnquiryTable
         items={items}
+        columns={visibleColumns}
         isLoading={isLoading}
         isEmpty={isEmpty}
         filtersActive={filtersActive}
@@ -136,6 +144,7 @@ export default function EnquiryListPage() {
         onQualify={onQualify}
         onAdd={canCreate ? openCreate : undefined}
         onResetFilters={resetFilters}
+        onManageColumns={() => setManageColumnsOpen(true)}
       />
 
       {!isLoading && pagination.total > 0 && (
@@ -170,8 +179,45 @@ export default function EnquiryListPage() {
         open={qualifyModal.open}
         enquiry={qualifyModal.enquiry}
         onClose={() => setQualifyModal({ open: false, enquiry: null })}
-        onSubmitted={() => {
-          setToast({ open: true, tone: 'success', message: 'Qualification submitted' });
+        onSubmitted={(result) => {
+          setToast({
+            open: true,
+            tone: 'success',
+            message: result?.movedBack
+              ? 'No visit date — moved back to Pending (marked Previously Qualified)'
+              : 'Qualification submitted',
+          });
+          reload();
+        }}
+      />
+
+      <ManageColumnsModal
+        open={manageColumnsOpen}
+        columns={columns}
+        onClose={() => setManageColumnsOpen(false)}
+        onRename={rename}
+        onToggle={toggle}
+        onAdd={addColumn}
+        onReset={reset}
+      />
+
+      <BulkImportModal
+        open={bulkImportOpen}
+        onClose={() => setBulkImportOpen(false)}
+        onImported={(res) => {
+          setToast({
+            open: true,
+            tone: 'success',
+            message: `Imported ${res?.summary?.created ?? 0} leads · ${res?.summary?.skipped ?? 0} skipped`,
+          });
+          reload();
+        }}
+        onDistributed={(res) => {
+          setToast({
+            open: true,
+            tone: 'success',
+            message: `Distributed ${res?.assigned ?? 0} leads to telesales`,
+          });
           reload();
         }}
       />

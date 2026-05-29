@@ -10,6 +10,8 @@ import UserManagementPage from '../modules/crm/users/pages/UserManagementPage';
 import ConfigurationPage from '../modules/crm/configuration/pages/ConfigurationPage';
 import ReportsPage from '../modules/crm/reports/pages/ReportsPage';
 import RolesPage from '../modules/crm/roles/pages/RolesPage';
+import ProjectsPage from '../modules/crm/projects/pages/ProjectsPage';
+import FollowupsPage from '../modules/crm/followups/pages/FollowupsPage';
 import { AppLayout } from '../layouts/AppLayout';
 import { ProtectedRoute } from '../shared/guards/ProtectedRoute';
 import { PublicRoute } from '../shared/guards/PublicRoute';
@@ -39,7 +41,8 @@ export const router = createBrowserRouter([
           { path: 'qualifications', element: <DashboardPlaceholder title="Qualification" /> },
           { path: 'leads', element: <LeadsPage /> },
           { path: 'lead-assignments', element: <LeadAssignmentPage /> },
-          { path: 'followups', element: <DashboardPlaceholder title="Followups" /> },
+          { path: 'projects', element: <ProjectsPage /> },
+          { path: 'followups', element: <FollowupsPage /> },
           { path: 'reminders', element: <Navigate to="/app/followups" replace /> },
           { path: 'reports', element: <ReportsPage /> },
           { path: 'users', element: <UserManagementPage /> },

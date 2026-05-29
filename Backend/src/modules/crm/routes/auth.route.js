@@ -7,6 +7,7 @@ const v = require('../validators/auth.validator');
 const router = express.Router();
 
 router.post('/login', validate(v.login), ctrl.login);
+router.post('/google', validate(v.googleLogin), ctrl.googleLogin);
 router.post('/refresh', validate(v.refresh), ctrl.refresh);
 router.post('/logout', validate(v.refresh), ctrl.logout);
 router.post('/logout-all', auth, ctrl.logoutAll);

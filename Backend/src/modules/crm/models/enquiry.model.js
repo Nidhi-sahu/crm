@@ -15,6 +15,7 @@ const enquirySchema = new mongoose.Schema(
     dateOfEnquiry: { type: Date, default: () => new Date() },
 
     source: { type: String, enum: SOURCE_VALUES, required: true, index: true },
+    brokerName: { type: String, trim: true, default: '' },
 
     propertyType: { type: String, trim: true, default: '' },
     project: { type: String, trim: true, default: '' },
@@ -53,6 +54,18 @@ const enquirySchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+
+    // Telesales user this enquiry is distributed to (bulk import / distribution)
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
+
+    // Set when an enquiry was qualified without a visit date and moved back to pending.
+    previouslyQualified: { type: Boolean, default: false },
+    movedBackAt: { type: Date, default: null },
 
     qualificationAnswers: { type: mongoose.Schema.Types.Mixed, default: {} },
 

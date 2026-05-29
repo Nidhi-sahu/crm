@@ -39,6 +39,31 @@ const markMissedBulk = (ids) =>
     { $set: { status: REMINDER_STATUS.MISSED } }
   );
 
+// Overdue + pending items not notified since `since` (≈ daily throttle).
+const findOverdueToNotify = (now = new Date(), since, limit = 200) =>
+  Reminder.find({
+    status: REMINDER_STATUS.PENDING,
+    reminderAt: { $lt: now },
+    $or: [{ overdueNotifiedAt: null }, { overdueNotifiedAt: { $lt: since } }],
+  })
+    .sort({ reminderAt: 1 })
+    .limit(limit);
+
+const markOverdueNotifiedBulk = (ids, at = new Date()) =>
+  Reminder.updateMany({ _id: { $in: ids } }, { $set: { overdueNotifiedAt: at } });
+
+// Lead IDs that have a pending follow-up (reminder) due within a date range.
+const findLeadIdsBetween = async (start, end) => {
+  const docs = await Reminder.find({
+    referenceType: 'lead',
+    status: REMINDER_STATUS.PENDING,
+    reminderAt: { $gte: start, $lte: end },
+  })
+    .select('referenceId')
+    .lean();
+  return docs.map((d) => String(d.referenceId));
+};
+
 module.exports = {
   create,
   findById,
@@ -48,4 +73,7 @@ module.exports = {
   remove,
   findOverduePending,
   markMissedBulk,
+  findOverdueToNotify,
+  markOverdueNotifiedBulk,
+  findLeadIdsBetween,
 };

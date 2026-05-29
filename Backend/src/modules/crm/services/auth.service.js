@@ -1,11 +1,15 @@
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 
 const userRepo = require('../repositories/user.repository');
 const refreshTokenRepo = require('../repositories/refreshToken.repository');
 const hashUtil = require('../../../utils/hash.util');
 const { signAccess, signRefresh, verifyRefresh, newJti, parseExpiry } = require('../../../utils/jwt.util');
 const jwtConfig = require('../../../config/jwt.config');
+const config = require('../../../config');
 const ApiError = require('../../../utils/ApiError');
+
+const googleClient = new OAuth2Client(config.google.clientId);
 
 const buildTokenPair = async (user, deviceInfo) => {
   const jti = newJti();
@@ -35,6 +39,41 @@ const login = async ({ email, password, deviceInfo }) => {
 
   const ok = await hashUtil.compare(password, user.passwordHash);
   if (!ok) throw ApiError.unauthorized('Invalid credentials');
+
+  const tokens = await buildTokenPair(user, deviceInfo);
+  await userRepo.pushLoginHistory(user._id, {
+    at: new Date(),
+    ip: deviceInfo && deviceInfo.ip,
+    userAgent: deviceInfo && deviceInfo.userAgent,
+  });
+
+  return { user: sanitizeUser(user), ...tokens };
+};
+
+const loginWithGoogle = async ({ credential, deviceInfo }) => {
+  if (!config.google.clientId) {
+    throw ApiError.badRequest('Google login is not configured');
+  }
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: config.google.clientId,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    throw ApiError.unauthorized('Invalid Google token');
+  }
+
+  if (!payload || !payload.email) throw ApiError.unauthorized('Invalid Google token');
+  if (!payload.email_verified) throw ApiError.unauthorized('Google email not verified');
+
+  const user = await userRepo.findByEmail(payload.email.toLowerCase());
+  if (!user) {
+    throw ApiError.unauthorized('This Google account is not registered. Contact your administrator.');
+  }
+  if (user.status !== 'active') throw ApiError.forbidden('Account inactive');
 
   const tokens = await buildTokenPair(user, deviceInfo);
   await userRepo.pushLoginHistory(user._id, {
@@ -122,6 +161,7 @@ const changePassword = async ({ userId, currentPassword, newPassword }) => {
 
 module.exports = {
   login,
+  loginWithGoogle,
   refresh,
   logout,
   logoutAll,

@@ -25,6 +25,9 @@ const reminderSchema = new mongoose.Schema(
     completedAt: { type: Date, default: null },
     completedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
+    // Last time an overdue notification was sent (throttles the cron to ~daily).
+    overdueNotifiedAt: { type: Date, default: null },
+
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   },
   { timestamps: true }

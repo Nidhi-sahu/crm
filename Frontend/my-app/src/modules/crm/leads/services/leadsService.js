@@ -104,6 +104,21 @@ export const leadsService = {
     return items.sort((a, b) => (a.order || 0) - (b.order || 0));
   },
 
+  async createVisitReport(leadId, payload) {
+    const data = unwrap(await leadsAPI.createVisitReport(leadId, payload));
+    return data?.report || data;
+  },
+
+  async listVisitReports(leadId) {
+    const data = unwrap(await leadsAPI.listVisitReports(leadId));
+    return Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+  },
+
+  async uploadVisitPhoto(file) {
+    const data = unwrap(await leadsAPI.uploadVisitPhoto(file));
+    return data?.url || '';
+  },
+
   async listComments(leadId) {
     const data = unwrap(await leadCommentsAPI.listByLead(leadId));
     const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];

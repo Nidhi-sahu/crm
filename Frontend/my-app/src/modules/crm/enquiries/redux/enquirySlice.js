@@ -66,6 +66,7 @@ export const updateEnquiry = createAsyncThunk(
 const initialFilters = {
   search: '',
   uiStatus: '',
+  activityDate: '',
 };
 
 const initialState = {

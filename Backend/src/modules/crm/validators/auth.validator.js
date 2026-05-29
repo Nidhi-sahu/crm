@@ -8,6 +8,12 @@ const login = {
   }),
 };
 
+const googleLogin = {
+  body: Joi.object({
+    credential: Joi.string().required(),
+  }),
+};
+
 const refresh = {
   body: Joi.object({
     refreshToken: Joi.string().optional(),
@@ -34,4 +40,4 @@ const changePassword = {
   }),
 };
 
-module.exports = { login, refresh, forgotPassword, resetPassword, changePassword };
+module.exports = { login, googleLogin, refresh, forgotPassword, resetPassword, changePassword };

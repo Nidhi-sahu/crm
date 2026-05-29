@@ -177,7 +177,15 @@ const unassignVisit = async (leadId, { reason }, actor) => {
   return leadRepo.findById(leadId);
 };
 
-const pickLeastLoadedAssignee = async (targetRoleName) => {
+const startOfToday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// Picks the candidate (in the target role) with the EARLIEST login today —
+// i.e. the first user to log into the system this morning.
+const pickFirstMorningLogin = async (targetRoleName) => {
   const role = await roleRepo.findByName(targetRoleName);
   if (!role) {
     logger.warn(`Auto-assign target role not found: ${targetRoleName}`);
@@ -189,26 +197,41 @@ const pickLeastLoadedAssignee = async (targetRoleName) => {
     return null;
   }
 
-  const ids = candidates.map((u) => u._id);
-  const workloads = await leadRepo.getWorkloadByUserIds(ids);
-  const countByUser = Object.fromEntries(workloads.map((w) => [String(w._id), w.count]));
+  const dayStart = startOfToday();
+  let best = null; // { user, loginAt }
+  candidates.forEach((u) => {
+    const todays = (u.loginHistory || [])
+      .map((h) => (h && h.at ? new Date(h.at) : null))
+      .filter((dt) => dt && !Number.isNaN(dt.getTime()) && dt >= dayStart);
+    if (!todays.length) return;
+    const earliest = todays.reduce((min, dt) => (dt < min ? dt : min), todays[0]);
+    if (!best || earliest < best.loginAt) {
+      best = { user: u, loginAt: earliest };
+    }
+  });
 
-  return candidates
-    .map((u) => ({ user: u, count: countByUser[String(u._id)] || 0 }))
-    .sort((a, b) => a.count - b.count || String(a.user._id).localeCompare(String(b.user._id)))[0];
+  return best; // null if nobody in this role has logged in today yet
 };
 
 const autoAssignOne = async (lead) => {
   const targetRole = config.cron.autoAssignTargetRole;
-  const pick = await pickLeastLoadedAssignee(targetRole);
-  if (!pick) return { assignedTo: null, reason: `No candidate in role '${targetRole}'` };
+  const pick = await pickFirstMorningLogin(targetRole);
+  // No login yet today → leave unassigned; the next sweep will pick it up
+  // once the first user logs in this morning.
+  if (!pick) {
+    return { assignedTo: null, reason: `No '${targetRole}' has logged in today yet — retry next sweep` };
+  }
 
   const claimed = await leadRepo.claimForAssignment(lead._id, pick.user._id);
   if (!claimed) {
     return { assignedTo: null, reason: 'Lead was already assigned by another process' };
   }
 
-  const reason = `Auto-assigned: least loaded in '${targetRole}' (${pick.count} active leads)`;
+  const loginTime = pick.loginAt.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const reason = `Auto-assigned: first '${targetRole}' to log in today (${loginTime})`;
 
   await recordAssignment({
     leadId: lead._id,
@@ -227,13 +250,13 @@ const autoAssignOne = async (lead) => {
     body: reason,
     referenceType: REFERENCE_TYPE.LEAD,
     referenceId: lead._id,
-    meta: { leadId: lead._id, workload: pick.count },
+    meta: { leadId: lead._id, firstLoginAt: pick.loginAt },
   });
 
   return {
     assignedTo: pick.user._id,
     assigneeName: pick.user.name,
-    workload: pick.count,
+    firstLoginAt: pick.loginAt,
   };
 };
 
@@ -251,7 +274,7 @@ const runAutoAssignSweep = async ({ delayMinutes, batchSize } = {}) => {
       const res = await autoAssignOne(lead);
       if (res.assignedTo) {
         results.assigned += 1;
-        results.details.push({ leadId: lead._id, assignee: res.assigneeName, workload: res.workload });
+        results.details.push({ leadId: lead._id, assignee: res.assigneeName, firstLoginAt: res.firstLoginAt });
       } else {
         results.skipped += 1;
         results.details.push({ leadId: lead._id, reason: res.reason });

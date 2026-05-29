@@ -6,6 +6,7 @@ export const ICON_PATHS = {
   enquiries: 'M21 11.5a8.5 8.5 0 0 1-8.5 8.5H7l-4 3v-7.5A8.5 8.5 0 1 1 21 11.5Z',
   qualification: 'M5 12.5 10 17l9-10',
   leads: 'M3 7h18M3 12h12M3 17h7',
+  projects: 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h2m4 0h-2',
   assignment:
     'M7 9V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3M5 9h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9Z',
   followups:
@@ -27,8 +28,10 @@ export const CRM_GROUP = {
   children: [
     { label: 'Dashboard', path: DASHBOARD_PATH, iconKey: 'dashboard', requires: PERMISSIONS.dashboard.view },
     { label: 'Enquiries', path: '/app/enquiries', iconKey: 'enquiries', requires: PERMISSIONS.enquiry.read },
-    { label: 'Leads', path: '/app/leads', iconKey: 'leads', requires: PERMISSIONS.lead.read },
     { label: 'Lead Assignment', path: '/app/lead-assignments', iconKey: 'assignment', requires: PERMISSIONS.lead.assign },
+    { label: 'Leads', path: '/app/leads', iconKey: 'leads', requires: PERMISSIONS.lead.read },
+    { label: 'Follow-ups', path: '/app/followups', iconKey: 'followups' },
+    { label: 'Projects', path: '/app/projects', iconKey: 'projects' },
     { label: 'User Management', path: '/app/users', iconKey: 'users', requires: PERMISSIONS.user.read },
     { label: 'Roles', path: '/app/roles', iconKey: 'users', requires: PERMISSIONS.role.read },
     { label: 'Configuration', path: '/app/configurations', iconKey: 'configuration', requires: PERMISSIONS.configuration.read },

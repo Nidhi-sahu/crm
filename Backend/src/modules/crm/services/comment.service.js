@@ -2,6 +2,7 @@ const commentRepo = require('../repositories/comment.repository');
 const enquiryRepo = require('../repositories/enquiry.repository');
 const leadRepo = require('../repositories/lead.repository');
 const qualificationRepo = require('../repositories/qualification.repository');
+const reminderService = require('./reminder.service');
 const ApiError = require('../../../utils/ApiError');
 const { buildSkip } = require('../../../utils/pagination');
 const { REFERENCE_TYPE } = require('../../../constants/referenceTypes');
@@ -22,8 +23,9 @@ const assertReferenceExists = async (referenceType, referenceId) => {
 };
 
 const create = async (data, actor) => {
+  let lead = null;
   if (data.referenceType === REFERENCE_TYPE.LEAD) {
-    const lead = await leadRepo.findById(data.referenceId);
+    lead = await leadRepo.findById(data.referenceId);
     if (!lead) throw ApiError.badRequest(`${data.referenceType} not found: ${data.referenceId}`);
     stageAccessGuard.assertLeadAccess(actor, lead, 'comment');
   } else {
@@ -37,6 +39,21 @@ const create = async (data, actor) => {
     nextFollowupTime: data.nextFollowupTime || '',
     createdBy: actor._id,
   });
+
+  // A follow-up date on a comment becomes a trackable reminder for the owner.
+  if (data.nextFollowupDate) {
+    const leadAssignee = lead && (lead.assignedTo?._id || lead.assignedTo);
+    await reminderService.createForFollowup({
+      referenceType: data.referenceType,
+      referenceId: data.referenceId,
+      assignedTo: leadAssignee || actor._id,
+      date: data.nextFollowupDate,
+      time: data.nextFollowupTime,
+      title: `Follow-up: ${(data.comment || '').slice(0, 80)}`,
+      actor,
+    });
+  }
+
   return created.toObject();
 };
 

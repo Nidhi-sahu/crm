@@ -34,7 +34,7 @@ export const qualificationService = {
     }
   },
 
-  async submit({ enquiry, requirement, payload, status, rejectionReason, holdUntil }) {
+  async submit({ enquiry, existing, requirement, payload, status, rejectionReason, holdUntil }) {
     // 1. update requirement on enquiry if changed
     if (
       typeof requirement === 'string' &&
@@ -43,38 +43,46 @@ export const qualificationService = {
       await enquiryAPI.update(enquiry._id, { requirement: requirement.trim() });
     }
 
-    // 2. create qualification (status='pending' on backend)
-    const createRes = await qualificationAPI.create({
-      enquiryId: enquiry._id,
-      ...payload,
-    });
-    const created = extractQualification(unwrap(createRes));
-    if (!created?._id) {
-      throw new Error('Qualification create response missing _id');
+    // 2. create OR update qualification (re-qualify reuses the existing pending one)
+    let qualif;
+    if (existing?._id && existing.qualificationStatus === 'pending') {
+      qualif = extractQualification(unwrap(await qualificationAPI.update(existing._id, payload)));
+    } else {
+      qualif = extractQualification(
+        unwrap(await qualificationAPI.create({ enquiryId: enquiry._id, ...payload })),
+      );
+    }
+    if (!qualif?._id) {
+      throw new Error('Qualification response missing _id');
     }
 
     // 3. action route based on selected status
-    let finalRes = null;
     if (status === QUALIFICATION_STATUS.QUALIFIED) {
-      finalRes = await qualificationAPI.qualify(created._id);
-      // 4. auto-create Lead so it appears in Lead Assignment.
-      // Silent failure on conflict (lead exists) or missing permission.
+      const qualified = extractQualification(unwrap(await qualificationAPI.qualify(qualif._id)));
+      // No visit date → backend moved it back to Pending. Don't create a lead.
+      if (qualified?.movedBack) {
+        return { ...qualified, movedBack: true };
+      }
       try {
         await leadAPI.createFromEnquiry(enquiry._id);
       } catch (_) {
         // ignore — lead may already exist or user may lack lead:create
       }
-    } else if (status === QUALIFICATION_STATUS.NOT_QUALIFIED) {
-      finalRes = await qualificationAPI.reject(created._id, rejectionReason || '');
+      return qualified || qualif;
+    }
+
+    let finalRes = null;
+    if (status === QUALIFICATION_STATUS.NOT_QUALIFIED) {
+      finalRes = await qualificationAPI.reject(qualif._id, rejectionReason || '');
     } else if (status === QUALIFICATION_STATUS.HOLD) {
-      finalRes = await qualificationAPI.hold(created._id, {
+      finalRes = await qualificationAPI.hold(qualif._id, {
         holdUntil: holdUntil || null,
         remarks: payload.remarks || '',
       });
     } else if (status === QUALIFICATION_STATUS.FUTURE_PROSPECT) {
-      finalRes = await qualificationAPI.futureProspect(created._id);
+      finalRes = await qualificationAPI.futureProspect(qualif._id);
     }
 
-    return extractQualification(unwrap(finalRes)) || created;
+    return extractQualification(unwrap(finalRes)) || qualif;
   },
 };

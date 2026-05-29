@@ -14,6 +14,16 @@ export const authService = {
     return { accessToken, user };
   },
 
+  async loginWithGoogle({ credential, rememberMe = true }) {
+    tokenStorage.setRemember(!!rememberMe);
+    const res = await authAPI.googleLogin({ credential });
+    const data = unwrap(res);
+    const accessToken = data.accessToken || data.tokens?.accessToken;
+    const user = data.user || data;
+    if (accessToken) tokenStorage.setAccessToken(accessToken);
+    return { accessToken, user };
+  },
+
   async me() {
     const res = await authAPI.me();
     return unwrap(res);

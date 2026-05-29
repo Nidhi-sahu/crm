@@ -51,6 +51,41 @@ const login = asyncHandler(async (req, res) => {
   }
 });
 
+const googleLogin = asyncHandler(async (req, res) => {
+  const { credential } = req.body;
+  const deviceInfo = getDeviceInfo(req);
+  try {
+    const { user, accessToken, refreshToken, expiresAt } = await authService.loginWithGoogle({
+      credential,
+      deviceInfo,
+    });
+    res.cookie(COOKIE_NAME, refreshToken, { ...cookieOptions, expires: expiresAt });
+    auditLogService.log({
+      module: 'auth',
+      action: 'login',
+      actor: user,
+      refType: 'user',
+      refId: user._id,
+      ipAddress: deviceInfo.ip,
+      userAgent: deviceInfo.userAgent,
+      success: true,
+      meta: { email: user.email, method: 'google' },
+    });
+    ApiResponse.ok(res, { user, accessToken, refreshToken }, 'Login successful');
+  } catch (err) {
+    auditLogService.log({
+      module: 'auth',
+      action: 'login',
+      ipAddress: deviceInfo.ip,
+      userAgent: deviceInfo.userAgent,
+      success: false,
+      errorMessage: err && err.message,
+      meta: { method: 'google' },
+    });
+    throw err;
+  }
+});
+
 const refresh = asyncHandler(async (req, res) => {
   const refreshToken = req.signedCookies[COOKIE_NAME] || req.body.refreshToken;
   const tokens = await authService.refresh({
@@ -130,6 +165,7 @@ const changePassword = asyncHandler(async (req, res) => {
 
 module.exports = {
   login,
+  googleLogin,
   refresh,
   logout,
   logoutAll,

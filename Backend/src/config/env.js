@@ -15,6 +15,9 @@ const schema = Joi.object({
   CORS_ORIGIN: Joi.string().default('*'),
   COOKIE_SECRET: Joi.string().min(16).required(),
 
+  GOOGLE_CLIENT_ID: Joi.string().allow('').default(''),
+  GOOGLE_CLIENT_SECRET: Joi.string().allow('').default(''),
+
   RATE_LIMIT_WINDOW_MS: Joi.number().default(15 * 60 * 1000),
   RATE_LIMIT_MAX: Joi.number().default(300),
 

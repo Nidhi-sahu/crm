@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Modal } from '../../../../shared/components/Modal';
 import { Button } from '../../../../shared/components/Button';
@@ -9,6 +9,7 @@ import { useQualification } from '../hooks/useQualification';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { PERMISSIONS } from '../../auth/constants/permissions';
 import { QuestionRenderer } from './QuestionRenderer';
+import { projectsService } from '../../projects/services/projectsService';
 import { TemperatureSelector } from './TemperatureSelector';
 import { StatusSelector } from './StatusSelector';
 import { QualificationTimeline } from './QualificationTimeline';
@@ -105,6 +106,7 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
       remarks: existing?.remarks || '',
       reminderDate: isoDateInput(existing?.nextFollowupAt),
       reminderTime: isoTimeInput(existing?.nextFollowupAt),
+      visitDate: isoDateInput(existing?.visitDate),
       rejectionReason: '',
       holdUntil: '',
     },
@@ -120,6 +122,7 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
       remarks: existing?.remarks || '',
       reminderDate: isoDateInput(existing?.nextFollowupAt),
       reminderTime: isoTimeInput(existing?.nextFollowupAt),
+      visitDate: isoDateInput(existing?.visitDate),
       rejectionReason: '',
       holdUntil: '',
     });
@@ -127,6 +130,29 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
   }, [open, enquiry?._id, existing?._id]);
 
   useEffect(() => () => clearSaveError(), [clearSaveError]);
+
+  const [projectOptions, setProjectOptions] = useState([]);
+  useEffect(() => {
+    if (!open) return undefined;
+    let active = true;
+    projectsService
+      .list()
+      .then((list) => {
+        if (!active) return;
+        setProjectOptions(
+          list.map((p) => ({
+            value: p.name,
+            label: p.location ? `${p.name} — ${p.location}` : p.name,
+          })),
+        );
+      })
+      .catch(() => {
+        if (active) setProjectOptions([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open]);
 
   if (!enquiry) return null;
 
@@ -186,21 +212,27 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
       nextFollowupAt = dt.toISOString();
     }
 
+    const visitDate = values.visitDate
+      ? new Date(`${values.visitDate}T00:00:00`).toISOString()
+      : null;
+
     try {
-      await submit({
+      const result = await submit({
         enquiry,
+        existing,
         requirement: values.requirement,
         payload: {
           answers: answersArray,
           leadTemperature: values.temperature,
           remarks: values.remarks?.trim() || '',
           nextFollowupAt,
+          visitDate,
         },
         status: values.status,
         rejectionReason: values.rejectionReason?.trim() || '',
         holdUntil: values.holdUntil || null,
       });
-      onSubmitted?.();
+      onSubmitted?.(result);
       onClose?.();
     } catch (_) {
       // saveError is set in redux
@@ -284,7 +316,7 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
                   key={q.id}
                   className="rounded-lg border border-slate-200 bg-slate-50/60 p-3"
                 >
-                  <QuestionRenderer question={q} register={register} />
+                  <QuestionRenderer question={q} register={register} projectOptions={projectOptions} />
                 </div>
               ))}
             </div>
@@ -344,15 +376,28 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
                   {...register('holdUntil')}
                 />
               )}
+
+              {status === QUALIFICATION_STATUS.QUALIFIED && (
+                <div>
+                  <Input label="Visit Date" type="date" {...register('visitDate')} />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Required to keep this lead qualified. Without a visit date, the enquiry moves
+                    back to <strong>Pending</strong> (tagged “Previously Qualified”).
+                  </p>
+                </div>
+              )}
             </section>
 
             {/* Section 6 — Comment / Notes */}
             <section className={cardClass}>
-              <SectionHeader number={6}>Comment &amp; Notes</SectionHeader>
+              <SectionHeader number={6}>Comment &amp; Notes *</SectionHeader>
               <Textarea
                 rows={3}
                 placeholder="Followup notes, observations, remarks…"
-                {...register('remarks')}
+                error={errors.remarks?.message}
+                {...register('remarks', {
+                  validate: (v) => (v && v.trim().length > 0) || 'Remark is required when qualifying',
+                })}
               />
             </section>
 

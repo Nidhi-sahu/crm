@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { leadsService } from '../services/leadsService';
 import {
   fetchLeads,
   fetchStages,
@@ -31,8 +32,13 @@ export function useLeads() {
       sortOrder: 'desc',
     };
     if (state.filters.search) p.search = state.filters.search;
-    if (state.filters.uiStatus) p.uiStatus = state.filters.uiStatus;
+    if (state.filters.uiStatus === 'todaysFollowup') {
+      p.followupToday = true;
+    } else if (state.filters.uiStatus) {
+      p.uiStatus = state.filters.uiStatus;
+    }
     if (state.filters.stageId) p.currentStageId = state.filters.stageId;
+    if (state.filters.activityDate) p.activityDate = state.filters.activityDate;
     return p;
   }, [
     state.pagination.page,
@@ -40,6 +46,7 @@ export function useLeads() {
     state.filters.search,
     state.filters.uiStatus,
     state.filters.stageId,
+    state.filters.activityDate,
   ]);
 
   useEffect(() => {
@@ -93,10 +100,12 @@ export function useLeads() {
     loadComments: (leadId) => dispatch(fetchLeadComments(leadId)),
     addComment: (input) => dispatch(addLeadComment(input)).unwrap(),
     update: (leadId, payload) => dispatch(updateLead({ leadId, payload })).unwrap(),
-    moveStage: (leadId, toStageId) => dispatch(moveLeadStage({ leadId, toStageId })).unwrap(),
+    moveStage: (leadId, toStageId, comment) =>
+      dispatch(moveLeadStage({ leadId, toStageId, comment })).unwrap(),
     undoStage: (leadId) => dispatch(undoLeadStage(leadId)).unwrap(),
     markWon: (leadId) => dispatch(markLeadWon(leadId)).unwrap(),
     drop: (leadId, reason) => dispatch(dropLead({ leadId, reason })).unwrap(),
+    saveVisitReport: (leadId, payload) => leadsService.createVisitReport(leadId, payload),
     reload: () => dispatch(fetchLeads(params)),
   };
 }

@@ -29,6 +29,8 @@ const list = {
     assignedTo: objectId.optional(),
     from: Joi.date().iso().optional(),
     to: Joi.date().iso().min(Joi.ref('from')).optional(),
+    activityDate: Joi.date().iso().optional(),
+    followupToday: Joi.boolean().optional(),
   }),
 };
 
@@ -65,4 +67,24 @@ const markDropped = {
 
 const byId = { params: idParam };
 
-module.exports = { fromEnquiry, update, list, moveStage, markLost, markDropped, byId };
+const visitReport = {
+  params: idParam,
+  body: Joi.object({
+    visitedAt: Joi.date().iso().optional(),
+    customerName: Joi.string().trim().max(120).allow(''),
+    contactNumber: Joi.string().trim().max(20).allow(''),
+    salesPersonName: Joi.string().trim().max(120).allow(''),
+    visitorName: Joi.string().trim().max(120).allow(''),
+    projectVisited: Joi.string().trim().max(150).allow(''),
+    propertyInterested: Joi.string().trim().max(150).allow(''),
+    customerBudget: Joi.string().trim().max(60).allow(''),
+    customerProfession: Joi.string().trim().max(120).allow(''),
+    customerAddress: Joi.string().trim().max(300).allow(''),
+    sourceOfCustomer: Joi.string().trim().max(60).allow(''),
+    seniorPerson: Joi.string().trim().max(120).allow(''),
+    visitNumber: Joi.string().valid('1st', '2nd', '3rd', '4th+').optional(),
+    photoUrl: Joi.string().trim().max(500).allow(''),
+  }),
+};
+
+module.exports = { fromEnquiry, update, list, moveStage, markLost, markDropped, byId, visitReport };

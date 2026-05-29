@@ -11,6 +11,7 @@ import { LeadTimeline } from './LeadTimeline';
 import { DropLeadDialog } from './DropLeadDialog';
 import { StageProgress } from './StageProgress';
 import { StageMoveDialog } from './StageMoveDialog';
+import { VisitReportModal } from './VisitReportModal';
 import { formatDate, initialsOf, shortCode } from '../utils/leadFormatters';
 import { leadsService } from '../services/leadsService';
 
@@ -63,6 +64,7 @@ export function LeadDetailsModal({
   onClose,
   onSaveProgress,
   onCompleteStage,
+  onCompleteVisit,
   onUndoStage,
   onDropLead,
   onAddComment,
@@ -80,6 +82,16 @@ export function LeadDetailsModal({
   const [comment, setComment] = useState('');
   const [dropOpen, setDropOpen] = useState(false);
   const [stageDialog, setStageDialog] = useState({ open: false, mode: 'move' });
+  const [progressError, setProgressError] = useState('');
+  const [visitReportOpen, setVisitReportOpen] = useState(false);
+  const [visitReports, setVisitReports] = useState([]);
+
+  const loadVisitReports = (id) => {
+    leadsService
+      .listVisitReports(id)
+      .then(setVisitReports)
+      .catch(() => setVisitReports([]));
+  };
 
   const [localVisitAssignee, setLocalVisitAssignee] = useState(null);
   const [visitMembers, setVisitMembers] = useState([]);
@@ -103,6 +115,7 @@ export function LeadDetailsModal({
     if (lead._id) {
       onLoadHistory?.(lead._id);
       onLoadComments?.(lead._id);
+      loadVisitReports(lead._id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lead?._id]);
@@ -156,6 +169,19 @@ export function LeadDetailsModal({
   const isFinal = lead.currentStageId?.isFinal;
   const isClosed = lead.status !== 'active';
   const hasMovedOnce = !!lead.actualStageAt;
+  const isVisitStage =
+    (lead.currentStageId?.name || '').trim().toLowerCase() === 'visit confirmed';
+
+  const openStageChange = () => {
+    if (isVisitStage) setVisitReportOpen(true);
+    else setStageDialog({ open: true, mode: 'move' });
+  };
+
+  const handleVisitReportSubmit = async (reportData) => {
+    await onCompleteVisit(lead._id, reportData, nextStage?._id);
+    setVisitReportOpen(false);
+    loadVisitReports(lead._id);
+  };
 
   const handleSaveProgress = async () => {
     const payload = {};
@@ -174,10 +200,17 @@ export function LeadDetailsModal({
     if (actualValue !== '' && Number(actualValue) !== currentActual) {
       payload.actualValue = Number(actualValue);
     }
-    if (Object.keys(payload).length === 0 && !comment.trim()) {
+    const hasChanges = Object.keys(payload).length > 0;
+    if (!hasChanges && !comment.trim()) {
       return;
     }
-    if (Object.keys(payload).length > 0) {
+    // A comment is mandatory whenever a date/value change is being saved.
+    if (hasChanges && !comment.trim()) {
+      setProgressError('Please add a comment before saving this change.');
+      return;
+    }
+    setProgressError('');
+    if (hasChanges) {
       await onSaveProgress(lead._id, payload);
     }
     if (comment.trim()) {
@@ -189,21 +222,24 @@ export function LeadDetailsModal({
     }
   };
 
-  const handleConfirmMove = async (targetStageId) => {
+  const handleConfirmMove = async (targetStageId, moveComment) => {
     if (!targetStageId) return;
-    await onCompleteStage(lead._id, targetStageId, false);
+    await onCompleteStage(lead._id, targetStageId, false, moveComment);
     setStageDialog({ open: false, mode: 'move' });
   };
 
-  const handleConfirmWon = async () => {
-    await onCompleteStage(lead._id, null, true);
+  const handleConfirmWon = async (wonComment) => {
+    await onCompleteStage(lead._id, null, true, wonComment);
     setStageDialog({ open: false, mode: 'move' });
   };
 
-  const handleUndoStage = async () => {
-    // eslint-disable-next-line no-alert
-    if (!window.confirm('Undo the last stage move?')) return;
-    await onUndoStage(lead._id);
+  const handleConfirmUndo = async (undoComment) => {
+    await onUndoStage(lead._id, undoComment);
+    setStageDialog({ open: false, mode: 'move' });
+  };
+
+  const handleUndoStage = () => {
+    setStageDialog({ open: true, mode: 'undo' });
   };
 
   const handleDrop = async (reason) => {
@@ -216,7 +252,7 @@ export function LeadDetailsModal({
   return (
     <>
       <Modal
-        open={open}
+        open={open && !visitReportOpen}
         onClose={onClose}
         title="Lead Details"
         subtitle={enquiry.clientName ? `${enquiry.clientName} · ${shortCode(enquiry._id, 'ENQ')}` : ''}
@@ -260,11 +296,11 @@ export function LeadDetailsModal({
               {canMoveStage && !isClosed && (
                 <Button
                   variant="primary"
-                  onClick={() => setStageDialog({ open: true, mode: 'move' })}
+                  onClick={openStageChange}
                   disabled={saving}
                   className="!gap-1.5 !rounded-md !px-3 !py-1.5 !text-xs"
                 >
-                  Change Stage
+                  {isVisitStage ? 'Complete Visit' : 'Change Stage'}
                 </Button>
               )}
             </div>
@@ -445,11 +481,18 @@ export function LeadDetailsModal({
                 rows={2}
                 placeholder="Add a quick note or followup detail…"
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={(e) => {
+                  setComment(e.target.value);
+                  if (progressError) setProgressError('');
+                }}
               />
-              <p className="text-[11px] text-slate-500">
-                Comment will be added when you click <em>Save Progress</em>.
-              </p>
+              {progressError ? (
+                <p className="text-[11px] font-medium text-rose-600">{progressError}</p>
+              ) : (
+                <p className="text-[11px] text-slate-500">
+                  A comment is required when saving any date/value change.
+                </p>
+              )}
             </section>
           )}
 
@@ -469,6 +512,58 @@ export function LeadDetailsModal({
           </section>
 
           <div className="border-t border-slate-100" />
+
+          {/* Visit Reports */}
+          {visitReports.length > 0 && (
+            <>
+              <section className="space-y-2">
+                <SectionHeader>Visit Reports ({visitReports.length})</SectionHeader>
+                <div className="space-y-2">
+                  {visitReports.map((r) => (
+                    <div
+                      key={r._id}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-[10px] font-semibold text-brand-600">
+                          {r.visitNumber || '1st'} visit
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {formatDate(r.visitedAt || r.createdAt)}
+                        </span>
+                      </div>
+                      <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+                        <InfoRow label="Customer" value={r.customerName} />
+                        <InfoRow label="Contact" value={r.contactNumber} />
+                        <InfoRow label="Sales Person" value={r.salesPersonName} />
+                        <InfoRow label="Visitor" value={r.visitorName} />
+                        <InfoRow label="Project Visited" value={r.projectVisited} />
+                        <InfoRow label="Property Interested" value={r.propertyInterested} />
+                        <InfoRow label="Budget" value={r.customerBudget} />
+                        <InfoRow label="Profession" value={r.customerProfession} />
+                        <InfoRow label="Source" value={r.sourceOfCustomer} />
+                        <InfoRow label="Senior Person" value={r.seniorPerson} />
+                        <div className="sm:col-span-2">
+                          <InfoRow label="Address" value={r.customerAddress} />
+                        </div>
+                      </div>
+                      {r.photoUrl && (
+                        <a href={r.photoUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block">
+                          <img
+                            src={r.photoUrl}
+                            alt="Visit"
+                            className="h-24 w-24 rounded-lg border border-slate-200 object-cover"
+                          />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <div className="border-t border-slate-100" />
+            </>
+          )}
 
           {/* Timeline */}
           <section className="space-y-2">
@@ -510,6 +605,17 @@ export function LeadDetailsModal({
         onClose={() => setStageDialog({ open: false, mode: 'move' })}
         onConfirmMove={handleConfirmMove}
         onConfirmWon={handleConfirmWon}
+        onConfirmUndo={handleConfirmUndo}
+      />
+
+      <VisitReportModal
+        open={visitReportOpen}
+        lead={lead}
+        nextStage={nextStage}
+        saving={saving}
+        saveError={saveError}
+        onClose={() => setVisitReportOpen(false)}
+        onSubmit={handleVisitReportSubmit}
       />
     </>
   );

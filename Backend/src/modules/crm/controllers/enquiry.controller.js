@@ -33,4 +33,29 @@ const remove = asyncHandler(async (req, res) => {
   ApiResponse.ok(res, null, 'Enquiry deleted');
 });
 
-module.exports = { create, list, getOne, update, setFollowup, remove };
+const checkPhone = asyncHandler(async (req, res) => {
+  const exists = await enquiryService.phoneExists(req.query.phone, req.query.excludeId);
+  ApiResponse.ok(res, { exists }, 'Phone checked');
+});
+
+const bulkImport = asyncHandler(async (req, res) => {
+  const result = await enquiryService.bulkImport(req.body, req.user);
+  ApiResponse.created(res, result, 'Bulk import processed');
+});
+
+const bulkAssign = asyncHandler(async (req, res) => {
+  const result = await enquiryService.bulkAssign(req.body, req.user);
+  ApiResponse.ok(res, result, 'Leads distributed');
+});
+
+module.exports = {
+  create,
+  list,
+  getOne,
+  update,
+  setFollowup,
+  remove,
+  checkPhone,
+  bulkImport,
+  bulkAssign,
+};

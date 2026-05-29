@@ -16,6 +16,8 @@ const dashboardRoutes = require('./routes/dashboard.route');
 const reportRoutes = require('./routes/report.route');
 const configurationRoutes = require('./routes/configuration.route');
 const auditLogRoutes = require('./routes/auditLog.route');
+const uploadRoutes = require('./routes/upload.route');
+const projectRoutes = require('./routes/project.route');
 
 const router = express.Router();
 
@@ -35,6 +37,8 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/reports', reportRoutes);
 router.use('/configurations', configurationRoutes);
 router.use('/audit-logs', auditLogRoutes);
+router.use('/uploads', uploadRoutes);
+router.use('/projects', projectRoutes);
 
 router.get('/', (_req, res) => {
   res.json({

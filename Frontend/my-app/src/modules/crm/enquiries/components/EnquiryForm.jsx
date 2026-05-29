@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Input } from '../../../../shared/components/Input';
 import { SelectInput } from '../../../../shared/components/SelectInput';
 import { Textarea } from '../../../../shared/components/Textarea';
 import { Alert } from '../../../../shared/components/Alert';
 import { ENQUIRY_SOURCES } from '../constants/enquirySources';
+import { enquiryService } from '../services/enquiryService';
 import {
   enquiryRules,
   defaultEnquiryValues,
@@ -31,11 +32,37 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
     handleSubmit,
     setError,
     reset,
+    watch,
     formState: { errors, isDirty },
   } = useForm({
     mode: 'onTouched',
     defaultValues: initialValues,
   });
+
+  const [phoneDup, setPhoneDup] = useState(false);
+  const phoneValue = watch('clientPhone');
+  const sourceValue = watch('source');
+
+  useEffect(() => {
+    const phone = (phoneValue || '').trim();
+    if (phone.length < 7) {
+      setPhoneDup(false);
+      return undefined;
+    }
+    let active = true;
+    const timer = setTimeout(async () => {
+      try {
+        const exists = await enquiryService.checkPhone(phone, initialEnquiry?._id);
+        if (active) setPhoneDup(exists);
+      } catch (_) {
+        if (active) setPhoneDup(false);
+      }
+    }, 400);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [phoneValue, initialEnquiry?._id]);
 
   useEffect(() => {
     reset(initialValues);
@@ -54,6 +81,10 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
   }, [serverError, setError]);
 
   const submit = handleSubmit((values) => {
+    if (phoneDup) {
+      setError('clientPhone', { type: 'duplicate', message: 'This number already exists' });
+      return;
+    }
     onSubmit(formValuesToPayload(values));
   });
 
@@ -78,7 +109,7 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
           <Input
             label="Phone Number *"
             placeholder="+91 98765 43210"
-            error={errors.clientPhone?.message}
+            error={errors.clientPhone?.message || (phoneDup ? 'This number already exists' : undefined)}
             {...register('clientPhone', enquiryRules.clientPhone)}
           />
           <Input
@@ -109,7 +140,7 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
             {...register('dateOfEnquiry')}
           />
           <SelectInput
-            label="Source *"
+            label="Source of Lead *"
             placeholder="Select source"
             options={ENQUIRY_SOURCES}
             error={errors.source?.message}
@@ -121,6 +152,17 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
             {...register('nextFollowupAt')}
           />
         </div>
+        {sourceValue === 'broker' && (
+          <Input
+            label="Broker Name *"
+            placeholder="Enter the broker's name"
+            error={errors.brokerName?.message}
+            {...register('brokerName', {
+              validate: (v) =>
+                sourceValue !== 'broker' || (v && v.trim().length > 0) || "Broker's name is required",
+            })}
+          />
+        )}
         <Textarea
           label="Remark"
           rows={3}

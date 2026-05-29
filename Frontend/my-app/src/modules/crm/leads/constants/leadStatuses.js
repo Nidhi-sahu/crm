@@ -9,6 +9,7 @@ export const UI_STATUS = {
   OPEN: 'open',
   CONVERTED: 'converted',
   DROPPED: 'dropped',
+  TODAYS_FOLLOWUP: 'todaysFollowup',
 };
 
 export const STATUS_FILTER_OPTIONS = [
@@ -16,6 +17,7 @@ export const STATUS_FILTER_OPTIONS = [
   { value: UI_STATUS.OPEN, label: 'Open' },
   { value: UI_STATUS.CONVERTED, label: 'Converted' },
   { value: UI_STATUS.DROPPED, label: 'Dropped' },
+  { value: UI_STATUS.TODAYS_FOLLOWUP, label: "Today's Follow-up" },
 ];
 
 export const uiStatusToBackend = (ui) => {

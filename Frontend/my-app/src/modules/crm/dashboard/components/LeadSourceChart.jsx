@@ -6,6 +6,15 @@ import { ErrorState } from './ErrorState';
 import { colorAt } from '../utils/colorPalette';
 import { formatNumber } from '../utils/formatters';
 
+// Only these sources are shown in the distribution (fixed buckets).
+const FIXED_SOURCES = [
+  ['broker', 'Broker'],
+  ['self', 'Self'],
+  ['metaAds', 'Meta Ads'],
+  ['reference', 'Reference'],
+  ['walkIn', 'Walk-in'],
+];
+
 const renderTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const item = payload[0];
@@ -25,9 +34,14 @@ export function LeadSourceChart({ section, onRetry }) {
   const isError = status === 'failed';
   const isEmpty = !isLoading && !isError && (!data || data.length === 0);
 
-  const chartData = (data || []).map((row) => ({
-    name: row.source,
-    value: row.totalLeads,
+  // Count every entry from a source (enquiries), so it reflects as soon as
+  // a lead/enquiry is added — not only after it is qualified into a Lead.
+  const bySource = Object.fromEntries(
+    (data || []).map((r) => [r.source, r.enquiryCount ?? r.totalLeads ?? 0]),
+  );
+  const chartData = FIXED_SOURCES.map(([value, label]) => ({
+    name: label,
+    value: bySource[value] || 0,
   }));
 
   const total = chartData.reduce((s, r) => s + r.value, 0);
@@ -95,7 +109,7 @@ export function LeadSourceChart({ section, onRetry }) {
                         className="h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{ background: colorAt(i) }}
                       />
-                      <span className="truncate capitalize">{entry.name}</span>
+                      <span className="truncate">{entry.name}</span>
                     </span>
                     <span className="text-xs font-medium text-slate-900">
                       {formatNumber(entry.value)}{' '}

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, cloneElement } from 'react';
 import { formatDate, formatDateTime, isOverdue, initialsOf } from '../utils/enquiryFormatters';
 import {
   backendToUiStatus,
@@ -6,6 +6,7 @@ import {
   uiStatusTone,
   UI_STATUS,
 } from '../constants/enquiryStatuses';
+import { ENQUIRY_COLUMNS as DEFAULT_COLUMNS } from '../constants/enquiryColumns';
 
 const TONE_CLASSES = {
   amber: 'bg-amber-50 text-amber-700',
@@ -146,94 +147,141 @@ function TimestampPopover({ enquiry }) {
   );
 }
 
-export function EnquiryRow({ enquiry, onView, onQualify }) {
+export function EnquiryRow({ enquiry, columns = DEFAULT_COLUMNS, onView, onQualify }) {
   const uiStatus = backendToUiStatus(enquiry.status);
   const showQualify = uiStatus === UI_STATUS.PENDING;
 
-  return (
-    <tr className="transition-colors hover:bg-slate-50">
-      <Cell className="whitespace-nowrap">
-        {formatDate(enquiry.dateOfEnquiry || enquiry.createdAt)}
-      </Cell>
-      <Cell>
-        <button
-          type="button"
-          onClick={() => onView?.(enquiry)}
-          className="flex items-center gap-2.5 text-left"
-        >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-200 text-[13px] font-semibold text-slate-800">
-            {initialsOf(enquiry.clientName)}
-          </span>
-          <span className="block max-w-[180px] truncate text-[13px] font-medium text-slate-900 hover:text-brand-600">
-            {enquiry.clientName || '—'}
-          </span>
-        </button>
-      </Cell>
-      <Cell>{enquiry.companyName}</Cell>
-      <Cell className="whitespace-nowrap">{enquiry.clientPhone}</Cell>
-      <Cell>
-        <span className="block max-w-[180px] truncate" title={enquiry.clientEmail}>
-          {enquiry.clientEmail}
-        </span>
-      </Cell>
-      <Cell>
-        <StatusChip value={uiStatus} />
-      </Cell>
-      <Cell>{enquiry.createdBy?.name || '—'}</Cell>
-      <Cell className="whitespace-nowrap">
-        {enquiry.nextFollowupAt ? (
-          <span
-            className={`inline-flex items-center gap-1.5 ${
-              isOverdue(enquiry.nextFollowupAt) ? 'text-rose-600' : 'text-slate-700'
-            }`}
-          >
-            {formatDateTime(enquiry.nextFollowupAt, enquiry.followupTime)}
-            {isOverdue(enquiry.nextFollowupAt) && (
-              <span className="rounded-full bg-rose-50 px-1.5 py-0.5 text-[13px] font-semibold text-rose-600">
-                overdue
-              </span>
-            )}
-          </span>
-        ) : (
-          <span className="text-slate-300">—</span>
-        )}
-      </Cell>
-      <Cell>
-        {enquiry.remarks ? (
-          <span className="block max-w-[200px] truncate" title={enquiry.remarks}>
-            {enquiry.remarks}
-          </span>
-        ) : (
-          <span className="text-slate-300">—</span>
-        )}
-      </Cell>
-      <Cell>
-        <TimestampPopover enquiry={enquiry} />
-      </Cell>
-      <Cell className="text-right">
-        <div className="inline-flex items-center gap-1">
-          <button
-            type="button"
-            title="View details"
-            aria-label="View details"
-            onClick={() => onView?.(enquiry)}
-            className="rounded-md p-1.5 text-slate-500 hover:bg-brand-100 hover:text-brand-600"
-          >
-            <EyeIcon />
-          </button>
-          {showQualify && (
+  const renderCell = (key) => {
+    switch (key) {
+      case 'date':
+        return (
+          <Cell className="whitespace-nowrap">
+            {formatDate(enquiry.dateOfEnquiry || enquiry.createdAt)}
+          </Cell>
+        );
+      case 'clientName':
+        return (
+          <Cell>
             <button
               type="button"
-              title="Start qualification"
-              aria-label="Start qualification"
-              onClick={() => onQualify?.(enquiry)}
-              className="rounded-md p-1.5 text-slate-500 hover:bg-brand-100 hover:text-brand-600"
+              onClick={() => onView?.(enquiry)}
+              className="flex items-center gap-2.5 text-left"
             >
-              <QuestionIcon />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-200 text-[13px] font-semibold text-slate-800">
+                {initialsOf(enquiry.clientName)}
+              </span>
+              <span className="block max-w-[180px] truncate text-[13px] font-medium text-slate-900 hover:text-brand-600">
+                {enquiry.clientName || '—'}
+              </span>
             </button>
-          )}
-        </div>
-      </Cell>
+          </Cell>
+        );
+      case 'companyName':
+        return <Cell>{enquiry.companyName}</Cell>;
+      case 'clientPhone':
+        return <Cell className="whitespace-nowrap">{enquiry.clientPhone}</Cell>;
+      case 'clientEmail':
+        return (
+          <Cell>
+            <span className="block max-w-[180px] truncate" title={enquiry.clientEmail}>
+              {enquiry.clientEmail}
+            </span>
+          </Cell>
+        );
+      case 'status':
+        return (
+          <Cell>
+            <div className="flex flex-col items-start gap-1">
+              <StatusChip value={uiStatus} />
+              {enquiry.previouslyQualified && (
+                <span
+                  className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
+                  title="Was qualified but had no visit date — moved back to Pending"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+                  Previously Qualified
+                </span>
+              )}
+            </div>
+          </Cell>
+        );
+      case 'createdBy':
+        return <Cell>{enquiry.createdBy?.name || '—'}</Cell>;
+      case 'followup':
+        return (
+          <Cell className="whitespace-nowrap">
+            {enquiry.nextFollowupAt ? (
+              <span
+                className={`inline-flex items-center gap-1.5 ${
+                  isOverdue(enquiry.nextFollowupAt) ? 'text-rose-600' : 'text-slate-700'
+                }`}
+              >
+                {formatDateTime(enquiry.nextFollowupAt, enquiry.followupTime)}
+                {isOverdue(enquiry.nextFollowupAt) && (
+                  <span className="rounded-full bg-rose-50 px-1.5 py-0.5 text-[13px] font-semibold text-rose-600">
+                    overdue
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="text-slate-300">—</span>
+            )}
+          </Cell>
+        );
+      case 'remarks':
+        return (
+          <Cell>
+            {enquiry.remarks ? (
+              <span className="block max-w-[200px] truncate" title={enquiry.remarks}>
+                {enquiry.remarks}
+              </span>
+            ) : (
+              <span className="text-slate-300">—</span>
+            )}
+          </Cell>
+        );
+      case 'timestamp':
+        return (
+          <Cell>
+            <TimestampPopover enquiry={enquiry} />
+          </Cell>
+        );
+      case 'actions':
+        return (
+          <Cell className="text-right">
+            <div className="inline-flex items-center gap-1">
+              <button
+                type="button"
+                title="View details"
+                aria-label="View details"
+                onClick={() => onView?.(enquiry)}
+                className="rounded-md p-1.5 text-slate-500 hover:bg-brand-100 hover:text-brand-600"
+              >
+                <EyeIcon />
+              </button>
+              {showQualify && (
+                <button
+                  type="button"
+                  title="Start qualification"
+                  aria-label="Start qualification"
+                  onClick={() => onQualify?.(enquiry)}
+                  className="rounded-md p-1.5 text-slate-500 hover:bg-brand-100 hover:text-brand-600"
+                >
+                  <QuestionIcon />
+                </button>
+              )}
+            </div>
+          </Cell>
+        );
+      default:
+        // custom / unknown columns have no backing data yet
+        return <Cell />;
+    }
+  };
+
+  return (
+    <tr className="transition-colors hover:bg-slate-50">
+      {columns.map((col) => cloneElement(renderCell(col.key), { key: col.key }))}
     </tr>
   );
 }

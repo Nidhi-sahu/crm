@@ -2,24 +2,28 @@ import { useEffect, useState } from 'react';
 import { Modal } from '../../../../shared/components/Modal';
 import { Button } from '../../../../shared/components/Button';
 import { SelectInput } from '../../../../shared/components/SelectInput';
+import { Textarea } from '../../../../shared/components/Textarea';
 
 export function StageMoveDialog({
   open,
-  mode = 'move', // 'move' | 'won'
+  mode = 'move', // 'move' | 'won' | 'undo'
   lead,
   stages,
   saving,
   onClose,
   onConfirmMove,
   onConfirmWon,
+  onConfirmUndo,
 }) {
   const [targetId, setTargetId] = useState('');
+  const [comment, setComment] = useState('');
 
   const currentId = lead?.currentStageId?._id || lead?.currentStageId || '';
 
   useEffect(() => {
     if (!open) {
       setTargetId('');
+      setComment('');
     }
   }, [open]);
 
@@ -28,36 +32,40 @@ export function StageMoveDialog({
   const ordered = [...(stages || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
   const currentStage = ordered.find((s) => String(s._id) === String(currentId));
   const isWon = mode === 'won';
+  const isUndo = mode === 'undo';
 
   const stageOptions = ordered
     .filter((s) => String(s._id) !== String(currentId))
     .map((s) => ({ value: s._id, label: `${s.order}. ${s.name}` }));
 
+  const commentMissing = !comment.trim();
+
+  const title = isWon ? 'Mark Lead as Won' : isUndo ? 'Undo Stage Move' : 'Change Stage';
+
+  const handleConfirm = () => {
+    if (commentMissing) return;
+    if (isWon) onConfirmWon(comment.trim());
+    else if (isUndo) onConfirmUndo(comment.trim());
+    else onConfirmMove(targetId, comment.trim());
+  };
+
+  const confirmDisabled =
+    saving || commentMissing || (!isWon && !isUndo && !targetId);
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={isWon ? 'Mark Lead as Won' : 'Change Stage'}
+      title={title}
       width="max-w-md"
       footer={
         <div className="flex items-center justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          {isWon ? (
-            <Button variant="primary" onClick={onConfirmWon} loading={saving} disabled={saving}>
-              Confirm — Mark Won
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              onClick={() => onConfirmMove(targetId)}
-              loading={saving}
-              disabled={saving || !targetId}
-            >
-              Confirm Move
-            </Button>
-          )}
+          <Button variant="primary" onClick={handleConfirm} loading={saving} disabled={confirmDisabled}>
+            {isWon ? 'Confirm — Mark Won' : isUndo ? 'Confirm Undo' : 'Confirm Move'}
+          </Button>
         </div>
       }
     >
@@ -73,6 +81,10 @@ export function StageMoveDialog({
               </span>
             </div>
           </>
+        ) : isUndo ? (
+          <p className="text-sm text-slate-700">
+            This will revert the lead to its <strong>previous stage</strong>. Add a reason below.
+          </p>
         ) : (
           <>
             <div className="space-y-0.5">
@@ -91,12 +103,23 @@ export function StageMoveDialog({
               value={targetId}
               onChange={(e) => setTargetId(e.target.value)}
             />
-
-            <p className="text-[11px] text-slate-500">
-              Lead ko kisi bhi stage pe move kar sakte ho — pipeline ke aage ya peeche.
-            </p>
           </>
         )}
+
+        <div>
+          <Textarea
+            label="Comment *"
+            rows={3}
+            placeholder="Add a remark for this change…"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+          />
+          {commentMissing && (
+            <p className="mt-1 text-[11px] text-slate-400">
+              A comment is required before this change.
+            </p>
+          )}
+        </div>
       </div>
     </Modal>
   );

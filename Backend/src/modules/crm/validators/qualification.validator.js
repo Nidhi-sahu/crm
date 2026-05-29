@@ -19,6 +19,7 @@ const create = {
     leadTemperature: Joi.string().valid(...TEMPERATURE_VALUES).optional(),
     remarks: Joi.string().trim().max(2000).optional().allow(''),
     nextFollowupAt: Joi.date().iso().optional().allow(null),
+    visitDate: Joi.date().iso().optional().allow(null),
   }),
 };
 
@@ -30,6 +31,7 @@ const update = {
     leadTemperature: Joi.string().valid(...TEMPERATURE_VALUES).optional(),
     remarks: Joi.string().trim().max(2000).optional().allow(''),
     nextFollowupAt: Joi.date().iso().optional().allow(null),
+    visitDate: Joi.date().iso().optional().allow(null),
   }).min(1),
 };
 

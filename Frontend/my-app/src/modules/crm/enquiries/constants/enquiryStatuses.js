@@ -12,6 +12,7 @@ export const UI_STATUS = {
   PENDING: 'pending',
   QUALIFIED: 'qualified',
   NOT_QUALIFIED: 'notQualified',
+  TODAYS_FOLLOWUP: 'todaysFollowup',
 };
 
 export const STATUS_FILTER_OPTIONS = [
@@ -19,6 +20,7 @@ export const STATUS_FILTER_OPTIONS = [
   { value: UI_STATUS.PENDING, label: 'Pending' },
   { value: UI_STATUS.QUALIFIED, label: 'Qualified' },
   { value: UI_STATUS.NOT_QUALIFIED, label: 'Not Qualified' },
+  { value: UI_STATUS.TODAYS_FOLLOWUP, label: "Today's Follow-up" },
 ];
 
 // Map a UI status bucket → backend status array (sent to API as repeated query params)

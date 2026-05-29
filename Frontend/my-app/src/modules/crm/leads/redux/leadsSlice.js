@@ -71,9 +71,13 @@ export const updateLead = createAsyncThunk(
 
 export const moveLeadStage = createAsyncThunk(
   'leads/moveStage',
-  async ({ leadId, toStageId }, { rejectWithValue }) => {
+  async ({ leadId, toStageId, comment }, { rejectWithValue }) => {
     try {
-      return await leadsService.moveStage(leadId, { toStageId, actualAt: new Date().toISOString() });
+      return await leadsService.moveStage(leadId, {
+        toStageId,
+        comment: comment || '',
+        actualAt: new Date().toISOString(),
+      });
     } catch (err) {
       return rejectWithValue(extractApiError(err));
     }
@@ -113,7 +117,7 @@ export const dropLead = createAsyncThunk(
   },
 );
 
-const initialFilters = { search: '', uiStatus: '', stageId: '' };
+const initialFilters = { search: '', uiStatus: '', stageId: '', activityDate: '' };
 
 const initialState = {
   items: [],

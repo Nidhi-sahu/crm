@@ -22,6 +22,7 @@ const buildEvents = (lead, history, comments) => {
       verb: h.isUndo
         ? `Stage reverted: ${toName}`
         : `Stage moved: ${fromName} → ${toName}`,
+      detail: h.comment || undefined,
       actor: userName(h.movedBy),
       at: h.movedAt || h.createdAt,
     });

@@ -1,6 +1,12 @@
 import { enquiryAPI } from './enquiryAPI';
+import { rolesAPI } from '../../roles/services/rolesAPI';
+import { usersAPI } from '../../users/services/usersAPI';
+
+const TELESALES_ROLE_NAME = 'Tele Sales';
 
 const unwrap = (res) => res?.data?.data ?? res?.data ?? null;
+const toArray = (data) =>
+  Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
 const meta = (res) => res?.data?.meta ?? null;
 
 const cleanParams = (params = {}) => {
@@ -44,6 +50,27 @@ export const enquiryService = {
 
   async remove(id) {
     return unwrap(await enquiryAPI.remove(id));
+  },
+
+  async checkPhone(phone, excludeId) {
+    const data = unwrap(await enquiryAPI.checkPhone(phone, excludeId));
+    return !!data?.exists;
+  },
+
+  async bulkImport({ source, rows }) {
+    return unwrap(await enquiryAPI.bulkImport({ source, rows }));
+  },
+
+  async bulkAssign(assignments) {
+    return unwrap(await enquiryAPI.bulkAssign({ assignments }));
+  },
+
+  async listTelesalesUsers() {
+    const roles = toArray(unwrap(await rolesAPI.list()));
+    const role = roles.find((r) => r.name === TELESALES_ROLE_NAME);
+    if (!role) return [];
+    const users = toArray(unwrap(await usersAPI.list({ roleId: role._id, limit: 100 })));
+    return users;
   },
 
   async statusBreakdown(params = {}) {

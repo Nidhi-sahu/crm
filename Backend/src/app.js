@@ -12,6 +12,7 @@ const rateLimitOptions = require('./config/ratelimit.config');
 const requestLogger = require('./middlewares/requestLogger');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
+const { UPLOAD_ROOT } = require('./middlewares/upload.middleware');
 
 const apiRouter = require('./routes');
 
@@ -28,6 +29,8 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser(config.cookie.secret));
 app.use(requestLogger);
 app.use(rateLimit(rateLimitOptions));
+
+app.use('/uploads', express.static(UPLOAD_ROOT));
 
 app.use(config.apiPrefix, apiRouter);
 

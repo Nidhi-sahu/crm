@@ -1,6 +1,7 @@
 export const API_ROUTES = {
   auth: {
     login: '/auth/login',
+    google: '/auth/google',
     refresh: '/auth/refresh',
     logout: '/auth/logout',
     logoutAll: '/auth/logout-all',

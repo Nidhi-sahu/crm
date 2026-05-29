@@ -26,10 +26,13 @@ export function useEnquiryList() {
       sortOrder: state.sort.sortOrder,
     };
     if (state.filters.search) p.search = state.filters.search;
-    if (state.filters.uiStatus) {
+    if (state.filters.uiStatus === 'todaysFollowup') {
+      p.followupToday = true;
+    } else if (state.filters.uiStatus) {
       const backend = uiStatusToBackend(state.filters.uiStatus);
       if (backend) p.status = backend;
     }
+    if (state.filters.activityDate) p.activityDate = state.filters.activityDate;
     return p;
   }, [state.pagination.page, state.pagination.limit, state.sort, state.filters]);
 

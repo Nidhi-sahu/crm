@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 import { Input } from '../../../../shared/components/Input';
 import { PasswordInput } from '../../../../shared/components/PasswordInput';
 import { Button } from '../../../../shared/components/Button';
@@ -9,11 +10,12 @@ import { useAuth } from '../hooks/useAuth';
 import { resolveRoleLanding } from '../utils/roleRedirect';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export function LoginForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, error, dismissError } = useAuth();
+  const { login, loginWithGoogle, isLoading, error, dismissError } = useAuth();
 
   const {
     register,
@@ -26,12 +28,24 @@ export function LoginForm() {
 
   useEffect(() => () => dismissError(), [dismissError]);
 
+  const goAfterLogin = (user) => {
+    const dest = location.state?.from?.pathname || resolveRoleLanding(user);
+    navigate(dest, { replace: true });
+  };
+
   const onSubmit = async (values) => {
     try {
       const result = await login(values);
-      const dest =
-        location.state?.from?.pathname || resolveRoleLanding(result.user);
-      navigate(dest, { replace: true });
+      goAfterLogin(result.user);
+    } catch (_) {
+      // error already in redux state
+    }
+  };
+
+  const onGoogleSuccess = async (response) => {
+    try {
+      const result = await loginWithGoogle(response.credential);
+      goAfterLogin(result.user);
     } catch (_) {
       // error already in redux state
     }
@@ -75,6 +89,25 @@ export function LoginForm() {
       >
         {isLoading || isSubmitting ? 'Signing in…' : 'Sign in'}
       </Button>
+
+      {GOOGLE_ENABLED && (
+        <>
+          <div className="flex items-center gap-3 pt-2">
+            <span className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs text-slate-400">or</span>
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={onGoogleSuccess}
+              onError={() => {}}
+              text="signin_with"
+              shape="rectangular"
+              width="280"
+            />
+          </div>
+        </>
+      )}
 
       <p className="pt-2 text-center text-xs text-slate-500">
         Contact your administrator if you don&apos;t have access.

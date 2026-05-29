@@ -1,6 +1,7 @@
 const asyncHandler = require('../../../utils/asyncHandler');
 const ApiResponse = require('../../../utils/ApiResponse');
 const leadService = require('../services/lead.service');
+const visitReportService = require('../services/visitReport.service');
 const { buildMeta } = require('../../../utils/pagination');
 
 const createFromEnquiry = asyncHandler(async (req, res) => {
@@ -58,6 +59,16 @@ const remove = asyncHandler(async (req, res) => {
   ApiResponse.ok(res, null, 'Lead deleted');
 });
 
+const createVisitReport = asyncHandler(async (req, res) => {
+  const report = await visitReportService.create(req.params.id, req.body, req.user);
+  ApiResponse.created(res, { report }, 'Visit report saved');
+});
+
+const listVisitReports = asyncHandler(async (req, res) => {
+  const reports = await visitReportService.listForLead(req.params.id);
+  ApiResponse.ok(res, reports, 'Visit reports fetched');
+});
+
 module.exports = {
   createFromEnquiry,
   list,
@@ -70,4 +81,6 @@ module.exports = {
   markLost,
   markDropped,
   remove,
+  createVisitReport,
+  listVisitReports,
 };

@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { useCallback } from 'react';
-import { login, logout, fetchMe, clearError } from '../redux/authSlice';
+import { login, googleLogin, logout, fetchMe, clearError } from '../redux/authSlice';
 import { hasPermission, hasAnyPermission } from '../../../../shared/utils/permissions';
 
 export function useAuth() {
@@ -9,6 +9,10 @@ export function useAuth() {
 
   const doLogin = useCallback(
     (credentials) => dispatch(login(credentials)).unwrap(),
+    [dispatch],
+  );
+  const doGoogleLogin = useCallback(
+    (credential) => dispatch(googleLogin(credential)).unwrap(),
     [dispatch],
   );
   const doLogout = useCallback(() => dispatch(logout()), [dispatch]);
@@ -25,6 +29,7 @@ export function useAuth() {
     can: (key) => hasPermission(auth.user, key),
     canAny: (keys) => hasAnyPermission(auth.user, keys),
     login: doLogin,
+    loginWithGoogle: doGoogleLogin,
     logout: doLogout,
     refresh,
     dismissError,

@@ -1,8 +1,10 @@
 const qualificationRepo = require('../repositories/qualification.repository');
 const enquiryRepo = require('../repositories/enquiry.repository');
+const reminderService = require('./reminder.service');
 const ApiError = require('../../../utils/ApiError');
 const { buildSkip } = require('../../../utils/pagination');
 const { classifyByScore } = require('../../../constants/temperatures');
+const { REFERENCE_TYPE } = require('../../../constants/referenceTypes');
 const {
   ENQUIRY_STATUS,
   QUALIFICATION_STATUS,
@@ -35,11 +37,28 @@ const create = async (data, actor) => {
     leadTemperature,
     remarks: data.remarks || '',
     nextFollowupAt: data.nextFollowupAt ? new Date(data.nextFollowupAt) : null,
+    visitDate: data.visitDate ? new Date(data.visitDate) : null,
     qualificationStatus: QUALIFICATION_STATUS.PENDING,
     createdBy: actor._id,
   });
 
   await enquiryRepo.updateStatus(data.enquiryId, ENQUIRY_STATUS.CONTACTED, actor._id);
+
+  if (created.nextFollowupAt) {
+    const assignedTo =
+      (enquiry.assignedTo && (enquiry.assignedTo._id || enquiry.assignedTo)) ||
+      (enquiry.assignedQualificationUser &&
+        (enquiry.assignedQualificationUser._id || enquiry.assignedQualificationUser)) ||
+      actor._id;
+    await reminderService.createForFollowup({
+      referenceType: REFERENCE_TYPE.ENQUIRY,
+      referenceId: enquiry._id,
+      assignedTo,
+      date: created.nextFollowupAt,
+      title: `Follow-up: ${enquiry.clientName || 'Qualification'}`,
+      actor,
+    });
+  }
 
   return created.toObject();
 };
@@ -106,6 +125,22 @@ const qualify = async (id, actor) => {
     throw ApiError.badRequest('Cannot qualify a rejected enquiry — create a new qualification');
   }
 
+  const enquiryId = q.enquiryId && (q.enquiryId._id || q.enquiryId);
+
+  // Requirement: a lead can only stay qualified if a visit date is set.
+  // No visit date → move the enquiry back to the Pending Inquiry section,
+  // tagged as previously-qualified. The qualification stays pending so it
+  // can be re-qualified later once a visit date is added.
+  if (!q.visitDate) {
+    await enquiryRepo.update(enquiryId, {
+      status: ENQUIRY_STATUS.CONTACTED,
+      previouslyQualified: true,
+      movedBackAt: new Date(),
+      updatedBy: actor._id,
+    });
+    return { ...q, movedBack: true };
+  }
+
   const updated = await qualificationRepo.update(id, {
     qualificationStatus: QUALIFICATION_STATUS.QUALIFIED,
     qualifiedBy: actor._id,
@@ -113,10 +148,11 @@ const qualify = async (id, actor) => {
     updatedBy: actor._id,
   });
 
-  const enquiryId = q.enquiryId && (q.enquiryId._id || q.enquiryId);
   await enquiryRepo.update(enquiryId, {
     status: ENQUIRY_STATUS.QUALIFIED,
     temperature: updated.leadTemperature,
+    previouslyQualified: false,
+    movedBackAt: null,
     updatedBy: actor._id,
   });
 

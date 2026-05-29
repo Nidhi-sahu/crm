@@ -56,6 +56,28 @@ const create = async (data, actor) => {
   return created.toObject();
 };
 
+// Lightweight reminder creation used when a follow-up date is set elsewhere
+// (e.g. a lead comment). Never throws — follow-up creation must not block.
+const createForFollowup = async ({ referenceType, referenceId, assignedTo, date, time, title, actor }) => {
+  if (!date || !assignedTo) return null;
+  try {
+    const reminderAt = combineDateTime(date, time);
+    return await reminderRepo.create({
+      referenceType,
+      referenceId,
+      assignedTo,
+      title: (title || 'Follow-up').slice(0, 200),
+      reminderDate: new Date(date),
+      reminderTime: time || '',
+      reminderAt,
+      status: REMINDER_STATUS.PENDING,
+      createdBy: actor._id,
+    });
+  } catch (_) {
+    return null;
+  }
+};
+
 const list = async (query) => {
   const {
     page = 1,
@@ -172,6 +194,7 @@ const remove = async (id) => {
 
 module.exports = {
   create,
+  createForFollowup,
   list,
   today,
   overdue,

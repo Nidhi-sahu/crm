@@ -24,4 +24,14 @@ const countAll = (filter = {}) => Comment.countDocuments(filter);
 
 const remove = (id) => Comment.findByIdAndDelete(id);
 
-module.exports = { create, findById, findByRef, findAll, countAll, remove };
+const findLeadIdsBetween = async (start, end) => {
+  const docs = await Comment.find({
+    referenceType: 'lead',
+    createdAt: { $gte: start, $lte: end },
+  })
+    .select('referenceId')
+    .lean();
+  return docs.map((d) => String(d.referenceId));
+};
+
+module.exports = { create, findById, findByRef, findAll, countAll, remove, findLeadIdsBetween };

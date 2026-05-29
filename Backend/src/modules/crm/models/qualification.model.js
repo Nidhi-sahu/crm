@@ -35,6 +35,9 @@ const qualificationSchema = new mongoose.Schema(
     remarks: { type: String, trim: true, default: '' },
     nextFollowupAt: { type: Date, default: null, index: true },
 
+    // Scheduled site-visit date — required for an enquiry to stay qualified.
+    visitDate: { type: Date, default: null },
+
     qualificationStatus: {
       type: String,
       enum: QUALIFICATION_STATUS_VALUES,

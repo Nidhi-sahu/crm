@@ -4,9 +4,32 @@ import { Input } from '../../../../shared/components/Input';
 
 const fieldName = (q) => `answers.${q.id}`;
 
-export function QuestionRenderer({ question, register }) {
+export function QuestionRenderer({ question, register, projectOptions = [] }) {
   const id = `q-${question.id}`;
   const name = fieldName(question);
+
+  // "Preferred location?" → pick from company projects.
+  const isProjectLocation =
+    question.id === 'location' || /location/i.test(question.text || '');
+  if (isProjectLocation) {
+    const locationOptions = [
+      { value: '', label: projectOptions.length ? 'Select a project' : 'No projects added yet' },
+      ...projectOptions,
+    ];
+    return (
+      <div className="space-y-1.5">
+        <label htmlFor={id} className="text-sm font-medium text-slate-800">
+          {question.text}
+        </label>
+        <SelectInput
+          id={id}
+          options={locationOptions}
+          className="!py-1.5 !text-sm"
+          {...register(name)}
+        />
+      </div>
+    );
+  }
 
   if (question.type === 'select') {
     return (

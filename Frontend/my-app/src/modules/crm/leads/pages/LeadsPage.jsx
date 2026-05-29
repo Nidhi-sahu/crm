@@ -41,6 +41,7 @@ export default function LeadsPage() {
     undoStage,
     markWon,
     drop,
+    saveVisitReport,
     reload,
   } = useLeads();
 
@@ -107,13 +108,14 @@ export default function LeadsPage() {
     }
   };
 
-  const handleCompleteStage = async (leadId, toStageId, won) => {
+  const handleCompleteStage = async (leadId, toStageId, won, comment) => {
     try {
       let updated;
       if (won) {
         updated = await markWon(leadId);
+        if (comment) await addComment({ leadId, comment });
       } else {
-        updated = await moveStage(leadId, toStageId);
+        updated = await moveStage(leadId, toStageId, comment);
       }
       setDetailsModal((m) => ({ ...m, lead: { ...m.lead, ...updated } }));
       loadHistory(leadId);
@@ -128,12 +130,29 @@ export default function LeadsPage() {
     }
   };
 
-  const handleUndoStage = async (leadId) => {
+  const handleUndoStage = async (leadId, comment) => {
     try {
       const updated = await undoStage(leadId);
+      if (comment) await addComment({ leadId, comment });
       setDetailsModal((m) => ({ ...m, lead: { ...m.lead, ...updated } }));
       loadHistory(leadId);
       setToast({ open: true, tone: 'success', message: 'Stage reverted' });
+      reload();
+    } catch (_) {
+      // saveError set in slice
+    }
+  };
+
+  const handleCompleteVisit = async (leadId, reportData, toStageId) => {
+    try {
+      await saveVisitReport(leadId, reportData);
+      let updated = null;
+      if (toStageId) {
+        updated = await moveStage(leadId, toStageId, 'Visit report submitted');
+      }
+      if (updated) setDetailsModal((m) => ({ ...m, lead: { ...m.lead, ...updated } }));
+      loadHistory(leadId);
+      setToast({ open: true, tone: 'success', message: 'Visit report saved & stage moved' });
       reload();
     } catch (_) {
       // saveError set in slice
@@ -229,6 +248,7 @@ export default function LeadsPage() {
         }}
         onSaveProgress={handleSaveProgress}
         onCompleteStage={handleCompleteStage}
+        onCompleteVisit={handleCompleteVisit}
         onUndoStage={handleUndoStage}
         onDropLead={handleDrop}
         onAddComment={addComment}

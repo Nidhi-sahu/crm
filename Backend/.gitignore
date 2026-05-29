@@ -7,6 +7,8 @@ logs/
 *.log
 npm-debug.log*
 
+uploads/
+
 coverage/
 .nyc_output/
 

@@ -39,4 +39,15 @@ export const leadsAPI = {
   unassignVisit(id, payload) {
     return axiosClient.post(`${BASE}/${id}/unassign-visit`, payload);
   },
+  createVisitReport(id, payload) {
+    return axiosClient.post(`${BASE}/${id}/visit-report`, payload);
+  },
+  listVisitReports(id) {
+    return axiosClient.get(`${BASE}/${id}/visit-report`);
+  },
+  uploadVisitPhoto(file) {
+    const fd = new FormData();
+    fd.append('photo', file);
+    return axiosClient.post('/uploads/visit-photo', fd);
+  },
 };
