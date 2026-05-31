@@ -1,5 +1,6 @@
 const enquiryRepo = require('../repositories/enquiry.repository');
 const reminderService = require('./reminder.service');
+const leadService = require('./lead.service');
 const ApiError = require('../../../utils/ApiError');
 const { buildSkip } = require('../../../utils/pagination');
 const { ENQUIRY_STATUS } = require('../../../constants/statuses');
@@ -22,10 +23,41 @@ const followupReminder = (enquiry, actor) => {
 
 const create = async (data, actor) => {
   if (data.clientPhone && (await enquiryRepo.existsByPhone(data.clientPhone))) {
-    throw ApiError.conflict('An enquiry with this phone number already exists');
+    // Per #25 + #30: allow when existing is idle OR closed —
+    //   (a) idle LEAD (qualified but no activity), OR
+    //   (b) idle ENQUIRY (never qualified, no comments), OR
+    //   (c) CLOSED previous lead (dropped/lost/won) — show history.
+    const [idleLead, idleEnq, closedLead] = await Promise.all([
+      leadService.findIdlePreviousLead({
+        phone: data.clientPhone,
+        email: data.clientEmail,
+      }),
+      leadService.findIdlePreviousEnquiry({
+        phone: data.clientPhone,
+        email: data.clientEmail,
+      }),
+      leadService.findClosedPreviousLead({
+        phone: data.clientPhone,
+        email: data.clientEmail,
+      }),
+    ]);
+    if (!idleLead && !idleEnq && !closedLead) {
+      throw ApiError.conflict('An enquiry with this phone number already exists');
+    }
   }
   const created = await enquiryRepo.create({ ...data, createdBy: actor._id });
   const obj = created.toObject();
+
+  // Per #30: link to a closed previous lead so Enquiry Details can show history.
+  const closedPrev = await leadService.findClosedPreviousLead({
+    phone: obj.clientPhone,
+    email: obj.clientEmail,
+  });
+  if (closedPrev) {
+    await enquiryRepo.update(obj._id, { linkedClosedLeadId: closedPrev._id });
+    obj.linkedClosedLeadId = closedPrev._id;
+  }
+
   await followupReminder(obj, actor);
   return obj;
 };
@@ -193,6 +225,19 @@ const bulkAssign = async ({ assignments }, actor) => {
 
 const phoneExists = (phone, excludeId) => enquiryRepo.existsByPhone(phone, excludeId);
 
+// Returns { exists, idle } — idle:true when existing entry is non-blocking
+// (idle lead, idle enquiry, OR closed previous lead). New enquiry is allowed.
+const phoneExistsDetailed = async (phone, excludeId) => {
+  const exists = await enquiryRepo.existsByPhone(phone, excludeId);
+  if (!exists) return { exists: false, idle: false };
+  const [idleLead, idleEnq, closedLead] = await Promise.all([
+    leadService.findIdlePreviousLead({ phone }),
+    leadService.findIdlePreviousEnquiry({ phone }),
+    leadService.findClosedPreviousLead({ phone }),
+  ]);
+  return { exists: true, idle: !!(idleLead || idleEnq || closedLead) };
+};
+
 const setStatus = (id, status, actor) => enquiryRepo.updateStatus(id, status, actor._id);
 
 const assertExists = async (id) => {
@@ -210,6 +255,7 @@ module.exports = {
   setStatus,
   assertExists,
   phoneExists,
+  phoneExistsDetailed,
   bulkImport,
   bulkAssign,
 };

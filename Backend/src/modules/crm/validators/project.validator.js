@@ -2,6 +2,17 @@ const Joi = require('joi');
 const { idParam } = require('../../../validators/common.validator');
 
 const STATUS = ['ongoing', 'upcoming', 'completed'];
+const ACCOUNT_TYPES = ['', 'Savings', 'Current'];
+
+const bankDetailsSchema = Joi.object({
+  bankName: Joi.string().trim().max(120).allow('').optional(),
+  accountHolderName: Joi.string().trim().max(150).allow('').optional(),
+  accountNumber: Joi.string().trim().max(30).allow('').optional(),
+  ifscCode: Joi.string().trim().max(15).allow('').optional(),
+  branch: Joi.string().trim().max(120).allow('').optional(),
+  accountType: Joi.string().valid(...ACCOUNT_TYPES).optional(),
+  upiId: Joi.string().trim().max(100).allow('').optional(),
+}).optional();
 
 const create = {
   body: Joi.object({
@@ -11,6 +22,7 @@ const create = {
     status: Joi.string().valid(...STATUS).optional(),
     description: Joi.string().trim().max(1000).allow('').optional(),
     isActive: Joi.boolean().optional(),
+    bankDetails: bankDetailsSchema,
   }),
 };
 
@@ -23,6 +35,7 @@ const update = {
     status: Joi.string().valid(...STATUS).optional(),
     description: Joi.string().trim().max(1000).allow('').optional(),
     isActive: Joi.boolean().optional(),
+    bankDetails: bankDetailsSchema,
   }).min(1),
 };
 

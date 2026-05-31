@@ -20,7 +20,21 @@ const EditIcon = () => (
   </svg>
 );
 
-export function UserRow({ user, order, hiddenKeys, canEdit, onEdit }) {
+const LockIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="5" y="11" width="14" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="1.6" />
+  </svg>
+);
+
+const HistoryIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+  </svg>
+);
+
+export function UserRow({ user, order, hiddenKeys, canEdit, isAdmin, onEdit, onUnlock, onViewHistory }) {
   const renderCell = (key) => {
     switch (key) {
       case 'name':
@@ -30,11 +44,21 @@ export function UserRow({ user, order, hiddenKeys, canEdit, onEdit }) {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-200 text-xs font-semibold text-slate-800">
                 {initialsOf(user.name)}
               </span>
-              <span
-                className="block max-w-[160px] truncate font-medium text-slate-900"
-                title={user.name}
-              >
-                {user.name || '—'}
+              <span className="flex min-w-0 flex-col">
+                <span
+                  className="block max-w-[160px] truncate font-medium text-slate-900"
+                  title={user.name}
+                >
+                  {user.name || '—'}
+                </span>
+                {user.isLocked && (
+                  <span
+                    className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-medium text-rose-700"
+                    title={user.lockReason || 'Account locked'}
+                  >
+                    <LockIcon /> Locked
+                  </span>
+                )}
               </span>
             </div>
           </Cell>
@@ -68,19 +92,43 @@ export function UserRow({ user, order, hiddenKeys, canEdit, onEdit }) {
       case 'action':
         return (
           <Cell className="text-right">
-            {canEdit ? (
-              <button
-                type="button"
-                title="Edit user"
-                aria-label="Edit user"
-                onClick={() => onEdit?.(user)}
-                className="rounded-md p-1.5 text-slate-500 hover:bg-brand-100 hover:text-brand-600"
-              >
-                <EditIcon />
-              </button>
-            ) : (
-              <span className="text-slate-300">—</span>
-            )}
+            <div className="inline-flex items-center gap-1">
+              {isAdmin && user.isLocked && (
+                <button
+                  type="button"
+                  title="Unlock user"
+                  aria-label="Unlock user"
+                  onClick={() => onUnlock?.(user)}
+                  className="rounded-md p-1.5 text-rose-600 hover:bg-rose-100"
+                >
+                  <LockIcon />
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  type="button"
+                  title="View login history"
+                  aria-label="View login history"
+                  onClick={() => onViewHistory?.(user)}
+                  className="rounded-md p-1.5 text-slate-500 hover:bg-brand-100 hover:text-brand-600"
+                >
+                  <HistoryIcon />
+                </button>
+              )}
+              {canEdit ? (
+                <button
+                  type="button"
+                  title="Edit user"
+                  aria-label="Edit user"
+                  onClick={() => onEdit?.(user)}
+                  className="rounded-md p-1.5 text-slate-500 hover:bg-brand-100 hover:text-brand-600"
+                >
+                  <EditIcon />
+                </button>
+              ) : (
+                !isAdmin && <span className="text-slate-300">—</span>
+              )}
+            </div>
           </Cell>
         );
       default:

@@ -19,4 +19,6 @@ const findLastForLead = (leadId) =>
 
 const remove = (id) => LeadStageHistory.findByIdAndDelete(id);
 
-module.exports = { create, findByLeadId, findLastForLead, remove };
+const countByLeadId = (leadId) => LeadStageHistory.countDocuments({ leadId });
+
+module.exports = { create, findByLeadId, findLastForLead, remove, countByLeadId };

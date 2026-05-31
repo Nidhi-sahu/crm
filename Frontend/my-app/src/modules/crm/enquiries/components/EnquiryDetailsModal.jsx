@@ -1,5 +1,6 @@
 import { Modal } from '../../../../shared/components/Modal';
 import { Button } from '../../../../shared/components/Button';
+import { PreviousLeadHistoryPanel } from '../../leads/components/PreviousLeadHistoryPanel';
 import {
   backendToUiStatus,
   uiStatusLabel,
@@ -83,6 +84,10 @@ export function EnquiryDetailsModal({ open, enquiry, onClose }) {
       }
     >
       <div className="space-y-4">
+        {enquiry.linkedClosedLeadId && (
+          <PreviousLeadHistoryPanel prevLead={enquiry.linkedClosedLeadId} />
+        )}
+
         <SectionCard title="Basic Information">
           <Field label="Enquiry Number" value={shortCode(enquiry._id, 'ENQ')} />
           <Field
@@ -105,6 +110,8 @@ export function EnquiryDetailsModal({ open, enquiry, onClose }) {
           <Field label="Company Name" value={enquiry.companyName} />
           <Field label="Phone Number" value={enquiry.clientPhone} />
           <Field label="Email Address" value={enquiry.clientEmail} />
+          <Field label="City" value={enquiry.city} />
+          <Field label="Occupation" value={enquiry.occupation} />
           <Field label="Client Type" value={labelForClientType(enquiry.clientType)} />
           <Field label="Client ID" value={shortCode(enquiry._id, 'CL')} />
         </SectionCard>

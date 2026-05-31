@@ -5,7 +5,7 @@ export const LEAD_COLUMNS = [
   { key: 'clientPhone', label: 'Phone' },
   { key: 'clientEmail', label: 'Email' },
   { key: 'requirement', label: 'Requirement' },
-  { key: 'stage', label: 'Stage' },
+  { key: 'assignment', label: 'Assigned' },
   { key: 'action', label: 'Action', align: 'right' },
 ];
 

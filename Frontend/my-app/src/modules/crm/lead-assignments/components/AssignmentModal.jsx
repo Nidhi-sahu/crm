@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal } from '../../../../shared/components/Modal';
 import { Button } from '../../../../shared/components/Button';
 import { SelectInput } from '../../../../shared/components/SelectInput';
+import { Textarea } from '../../../../shared/components/Textarea';
 import { Alert } from '../../../../shared/components/Alert';
 import { Skeleton } from '../../dashboard/components/Skeleton';
 import { leadAssignmentService } from '../services/leadAssignmentService';
@@ -47,6 +48,7 @@ export function AssignmentModal({
   onClearError,
 }) {
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [reason, setReason] = useState('');
   const [enquiry, setEnquiry] = useState(null);
   const [qualification, setQualification] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -54,6 +56,7 @@ export function AssignmentModal({
   useEffect(() => {
     if (!open) {
       setSelectedUserId('');
+      setReason('');
       setEnquiry(null);
       setQualification(null);
       return;
@@ -78,10 +81,13 @@ export function AssignmentModal({
   if (!lead) return null;
 
   const e = enquiry || lead.enquiryId || {};
+  const isReassign = !!(lead.assignedTo && (lead.assignedTo._id || lead.assignedTo));
+  const reasonMissing = isReassign && reason.trim().length < 15;
 
   const handleSubmit = async () => {
     if (!selectedUserId) return;
-    await onSubmit(lead._id, selectedUserId);
+    if (reasonMissing) return;
+    await onSubmit(lead._id, selectedUserId, reason.trim());
   };
 
   const answers = qualification?.answers || [];
@@ -93,8 +99,12 @@ export function AssignmentModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Assign Lead"
-      subtitle="Distribute this qualified lead to a sales person"
+      title={isReassign ? 'Reassign Lead' : 'Assign Lead'}
+      subtitle={
+        isReassign
+          ? `Currently assigned to ${lead.assignedTo?.name || lead.assignedTo?.email || 'someone'} — reason required`
+          : 'Distribute this qualified lead to a sales person'
+      }
       width="max-w-2xl"
       footer={
         <div className="flex items-center justify-end gap-2">
@@ -104,10 +114,10 @@ export function AssignmentModal({
           <Button
             variant="primary"
             onClick={handleSubmit}
-            disabled={!selectedUserId || saving}
+            disabled={!selectedUserId || reasonMissing || saving}
             loading={saving}
           >
-            Assign Lead
+            {isReassign ? 'Reassign Lead' : 'Assign Lead'}
           </Button>
         </div>
       }
@@ -188,17 +198,38 @@ export function AssignmentModal({
 
         {/* Section 3 - Assign Sales Person */}
         <section className="space-y-2">
-          <SectionHeader>Assign Sales Person *</SectionHeader>
+          <SectionHeader>{isReassign ? 'Reassign To *' : 'Assign Sales Person *'}</SectionHeader>
           <SelectInput
             placeholder="Select sales person"
             value={selectedUserId}
             onChange={(ev) => setSelectedUserId(ev.target.value)}
-            options={salesPersons.map((u) => ({
-              value: u._id,
-              label: u.name ? `${u.name}${u.email ? ` · ${u.email}` : ''}` : u.email || u._id,
-            }))}
+            options={salesPersons.map((u) => {
+              const base = u.name
+                ? `${u.name}${u.email ? ` · ${u.email}` : ''}`
+                : u.email || u._id;
+              const active =
+                typeof u.activeLeads === 'number' ? ` — ${u.activeLeads} active` : '';
+              return { value: u._id, label: `${base}${active}` };
+            })}
           />
         </section>
+
+        {isReassign && (
+          <section className="space-y-2">
+            <SectionHeader>Reason for Reassignment *</SectionHeader>
+            <Textarea
+              rows={3}
+              placeholder="Why is this lead being reassigned? (min 15 characters — e.g., 'Client not responding to calls')"
+              value={reason}
+              onChange={(ev) => setReason(ev.target.value)}
+            />
+            {reasonMissing && (
+              <p className="text-[11px] text-rose-600">
+                Reason is required when reassigning a lead (min 15 characters).
+              </p>
+            )}
+          </section>
+        )}
       </div>
     </Modal>
   );

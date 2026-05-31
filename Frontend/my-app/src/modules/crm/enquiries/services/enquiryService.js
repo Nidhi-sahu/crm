@@ -54,7 +54,7 @@ export const enquiryService = {
 
   async checkPhone(phone, excludeId) {
     const data = unwrap(await enquiryAPI.checkPhone(phone, excludeId));
-    return !!data?.exists;
+    return { exists: !!data?.exists, idle: !!data?.idle };
   },
 
   async bulkImport({ source, rows }) {

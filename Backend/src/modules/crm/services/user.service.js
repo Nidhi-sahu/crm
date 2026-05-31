@@ -148,4 +148,26 @@ const remove = async (id, actor) => {
   audit('delete', actor, id, before, null);
 };
 
-module.exports = { create, list, getById, update, setStatus, assignRole, remove };
+const unlock = async (id, actor) => {
+  const before = await userRepo.findById(id);
+  if (!before) throw ApiError.notFound('User not found');
+  if (!before.isLocked) throw ApiError.badRequest('User is not locked');
+  const user = await userRepo.unlockUser(id, actor._id);
+  audit('unlock', actor, id, { isLocked: true }, { isLocked: false });
+  return user;
+};
+
+const loginHistory = async (id) => {
+  const data = await userRepo.getLoginHistory(id);
+  if (!data) throw ApiError.notFound('User not found');
+  return {
+    isLocked: !!data.isLocked,
+    lockReason: data.lockReason || '',
+    lockedAt: data.lockedAt,
+    unlockedAt: data.unlockedAt,
+    lastLoginAt: data.lastLoginAt,
+    items: (data.loginHistory || []).slice().reverse(), // most recent first
+  };
+};
+
+module.exports = { create, list, getById, update, setStatus, assignRole, remove, unlock, loginHistory };

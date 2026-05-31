@@ -43,6 +43,8 @@ export const defaultEnquiryValues = {
   dateOfEnquiry: todayInputValue(),
   source: '',
   brokerName: '',
+  city: '',
+  occupation: '',
   requirement: '',
   nextFollowupAt: '',
   remarks: '',
@@ -68,6 +70,8 @@ export const enquiryToFormValues = (enquiry) => {
     dateOfEnquiry: isoToInputDate(enquiry.dateOfEnquiry) || todayInputValue(),
     source: enquiry.source || '',
     brokerName: enquiry.brokerName || '',
+    city: enquiry.city || '',
+    occupation: enquiry.occupation || '',
     requirement: enquiry.requirement || '',
     nextFollowupAt: isoToInputDate(enquiry.nextFollowupAt),
     remarks: enquiry.remarks || '',
@@ -94,6 +98,8 @@ export const formValuesToPayload = (values) => {
   } else {
     payload.brokerName = '';
   }
+  setIf('city', values.city?.trim());
+  setIf('occupation', values.occupation);
   setIf('requirement', values.requirement?.trim());
   if (values.nextFollowupAt) {
     payload.nextFollowupAt = new Date(values.nextFollowupAt).toISOString();

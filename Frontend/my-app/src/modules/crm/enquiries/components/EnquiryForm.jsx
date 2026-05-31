@@ -6,12 +6,22 @@ import { Textarea } from '../../../../shared/components/Textarea';
 import { Alert } from '../../../../shared/components/Alert';
 import { ENQUIRY_SOURCES } from '../constants/enquirySources';
 import { enquiryService } from '../services/enquiryService';
+import { leadsService } from '../../leads/services/leadsService';
 import {
   enquiryRules,
   defaultEnquiryValues,
   enquiryToFormValues,
   formValuesToPayload,
 } from '../validations/enquirySchema';
+
+const VISIT_NUMBER_OPTIONS = [
+  { value: '1st', label: '1st Visit' },
+  { value: '2nd', label: '2nd Visit' },
+  { value: '3rd', label: '3rd Visit' },
+  { value: '4th+', label: '4th+ Visit' },
+];
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 const SectionHeader = ({ children }) => (
   <div className="flex items-center gap-2">
@@ -39,30 +49,65 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
     defaultValues: initialValues,
   });
 
-  const [phoneDup, setPhoneDup] = useState(false);
+  // 'none' | 'idle' (allow with warning) | 'active' (block)
+  const [phoneDup, setPhoneDup] = useState('none');
+  const [walkIn, setWalkIn] = useState({
+    visitDate: todayISO(),
+    salesPersonName: '',
+    propertyInterested: '',
+    firstPreference: '',
+    secondPreference: '',
+    customerProfession: '',
+    customerAddress: '',
+    customerBudget: '',
+    visitNumber: '1st',
+    photoUrl: '',
+  });
+  const [uploading, setUploading] = useState(false);
   const phoneValue = watch('clientPhone');
   const sourceValue = watch('source');
+  const isWalkIn = sourceValue === 'walkIn';
+
+  const setWalk = (key) => (e) =>
+    setWalkIn((w) => ({ ...w, [key]: e.target.value }));
+
+  const handleWalkPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await leadsService.uploadVisitPhoto(file);
+      setWalkIn((w) => ({ ...w, photoUrl: url }));
+    } catch (_) {
+      // silent — user can retry
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     const phone = (phoneValue || '').trim();
-    if (phone.length < 7) {
-      setPhoneDup(false);
+    if (isWalkIn || phone.length < 7) {
+      setPhoneDup('none');
       return undefined;
     }
     let active = true;
     const timer = setTimeout(async () => {
       try {
-        const exists = await enquiryService.checkPhone(phone, initialEnquiry?._id);
-        if (active) setPhoneDup(exists);
+        const res = await enquiryService.checkPhone(phone, initialEnquiry?._id);
+        if (!active) return;
+        if (!res.exists) setPhoneDup('none');
+        else if (res.idle) setPhoneDup('idle');
+        else setPhoneDup('active');
       } catch (_) {
-        if (active) setPhoneDup(false);
+        if (active) setPhoneDup('none');
       }
     }, 400);
     return () => {
       active = false;
       clearTimeout(timer);
     };
-  }, [phoneValue, initialEnquiry?._id]);
+  }, [phoneValue, initialEnquiry?._id, isWalkIn]);
 
   useEffect(() => {
     reset(initialValues);
@@ -81,8 +126,35 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
   }, [serverError, setError]);
 
   const submit = handleSubmit((values) => {
-    if (phoneDup) {
+    if (!isWalkIn && phoneDup === 'active') {
       setError('clientPhone', { type: 'duplicate', message: 'This number already exists' });
+      return;
+    }
+    if (isWalkIn) {
+      onSubmit({
+        __walkIn: true,
+        clientName: (values.clientName || '').trim(),
+        clientEmail: (values.clientEmail || '').trim(),
+        companyName: (values.companyName || '').trim(),
+        requirement: (values.requirement || '').trim(),
+        project: '',
+        budget: 0,
+        visitDate: walkIn.visitDate || todayISO(),
+        visitReport: {
+          visitedAt: walkIn.visitDate || todayISO(),
+          customerName: (values.clientName || '').trim(),
+          salesPersonName: walkIn.salesPersonName.trim(),
+          propertyInterested: walkIn.propertyInterested.trim(),
+          firstPreference: walkIn.firstPreference.trim(),
+          secondPreference: walkIn.secondPreference.trim(),
+          customerBudget: walkIn.customerBudget.trim(),
+          customerProfession: walkIn.customerProfession.trim(),
+          customerAddress: walkIn.customerAddress.trim(),
+          sourceOfCustomer: 'Walk-in',
+          visitNumber: walkIn.visitNumber,
+          photoUrl: walkIn.photoUrl,
+        },
+      });
       return;
     }
     onSubmit(formValuesToPayload(values));
@@ -106,12 +178,22 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
             error={errors.clientName?.message}
             {...register('clientName', enquiryRules.clientName)}
           />
-          <Input
-            label="Phone Number *"
-            placeholder="+91 98765 43210"
-            error={errors.clientPhone?.message || (phoneDup ? 'This number already exists' : undefined)}
-            {...register('clientPhone', enquiryRules.clientPhone)}
-          />
+          {!isWalkIn && (
+            <div>
+              <Input
+                label="Phone Number *"
+                placeholder="+91 98765 43210"
+                error={errors.clientPhone?.message || (phoneDup === 'active' ? 'This number already exists' : undefined)}
+                {...register('clientPhone', enquiryRules.clientPhone)}
+              />
+              {phoneDup === 'idle' && (
+                <p className="mt-1 text-[11px] font-medium text-amber-700">
+                  ⚠ This number was previously added but the lead is idle. You can still
+                  add — the new lead will show a “previously associated” note.
+                </p>
+              )}
+            </div>
+          )}
           <Input
             label="Company Name"
             placeholder="Optional"
@@ -124,6 +206,21 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
             placeholder="ramesh@example.com"
             error={errors.clientEmail?.message}
             {...register('clientEmail', enquiryRules.clientEmail)}
+          />
+          <Input
+            label="Client City"
+            placeholder="e.g. Raipur"
+            {...register('city')}
+          />
+          <SelectInput
+            label="Occupation"
+            placeholder="Select occupation"
+            options={[
+              { value: 'Government Job', label: 'Government Job' },
+              { value: 'Private Job', label: 'Private Job' },
+              { value: 'Business', label: 'Business' },
+            ]}
+            {...register('occupation')}
           />
         </div>
       </section>
@@ -184,6 +281,90 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
           {...register('requirement', enquiryRules.requirement)}
         />
       </section>
+
+      {isWalkIn && (
+        <>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            🚶 <strong>Walk-in client</strong> — phone not required. On save, this will create the lead directly at <strong>Feedback Call</strong> stage (visit already done).
+          </div>
+          <div className="border-t border-slate-100" />
+          <section className="space-y-3">
+            <SectionHeader>Visit Details</SectionHeader>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Input
+                type="date"
+                label="Visit Date *"
+                value={walkIn.visitDate}
+                onChange={setWalk('visitDate')}
+              />
+              <SelectInput
+                label="Visit Number"
+                options={VISIT_NUMBER_OPTIONS}
+                value={walkIn.visitNumber}
+                onChange={setWalk('visitNumber')}
+              />
+              <Input
+                label="Property Interested"
+                placeholder="e.g. 3 BHK"
+                value={walkIn.propertyInterested}
+                onChange={setWalk('propertyInterested')}
+              />
+              <Input
+                label="First Preference (Primary Villa)"
+                placeholder="e.g. Villa A"
+                value={walkIn.firstPreference}
+                onChange={setWalk('firstPreference')}
+              />
+              <Input
+                label="Second Preference (Secondary Villa)"
+                placeholder="e.g. Villa B"
+                value={walkIn.secondPreference}
+                onChange={setWalk('secondPreference')}
+              />
+              <Input
+                label="Sales Person"
+                placeholder="Who attended"
+                value={walkIn.salesPersonName}
+                onChange={setWalk('salesPersonName')}
+              />
+              <Input
+                label="Customer Budget"
+                placeholder="e.g. ₹50–80 Lakh"
+                value={walkIn.customerBudget}
+                onChange={setWalk('customerBudget')}
+              />
+              <Input
+                label="Customer Profession"
+                placeholder="e.g. Software Engineer"
+                value={walkIn.customerProfession}
+                onChange={setWalk('customerProfession')}
+              />
+            </div>
+            <Textarea
+              label="Customer Address"
+              rows={2}
+              value={walkIn.customerAddress}
+              onChange={setWalk('customerAddress')}
+            />
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-700">
+                Photo (optional)
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleWalkPhoto}
+                disabled={uploading}
+                className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-brand-700 hover:file:bg-brand-200"
+              />
+              {uploading && <p className="mt-1 text-[11px] text-slate-500">Uploading…</p>}
+              {walkIn.photoUrl && (
+                <p className="mt-1 text-[11px] text-emerald-600">Photo uploaded ✓</p>
+              )}
+            </div>
+          </section>
+        </>
+      )}
     </form>
   );
 }

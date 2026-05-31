@@ -188,6 +188,10 @@ export function EnquiryRow({ enquiry, columns = DEFAULT_COLUMNS, onView, onQuali
             </span>
           </Cell>
         );
+      case 'city':
+        return <Cell className="whitespace-nowrap">{enquiry.city}</Cell>;
+      case 'occupation':
+        return <Cell className="whitespace-nowrap">{enquiry.occupation}</Cell>;
       case 'status':
         return (
           <Cell>

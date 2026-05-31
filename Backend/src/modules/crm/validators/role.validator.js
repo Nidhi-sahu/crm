@@ -6,6 +6,7 @@ const create = {
     name: Joi.string().trim().min(2).max(50).required(),
     description: Joi.string().trim().max(255).optional().allow(''),
     permissions: Joi.array().items(Joi.string()).default([]),
+    commentMaxStageOrder: Joi.number().integer().min(1).max(20).allow(null).optional(),
   }),
 };
 
@@ -15,6 +16,7 @@ const update = {
     name: Joi.string().trim().min(2).max(50).optional(),
     description: Joi.string().trim().max(255).optional().allow(''),
     permissions: Joi.array().items(Joi.string()).optional(),
+    commentMaxStageOrder: Joi.number().integer().min(1).max(20).allow(null).optional(),
   }).min(1),
 };
 

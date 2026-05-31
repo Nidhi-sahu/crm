@@ -8,6 +8,37 @@ const fromEnquiry = {
   params: Joi.object({ enquiryId: objectId.required() }),
 };
 
+const walkin = {
+  body: Joi.object({
+    clientName: Joi.string().trim().min(2).max(120).required(),
+    clientEmail: Joi.string().trim().email().allow('').optional(),
+    companyName: Joi.string().trim().max(120).allow('').optional(),
+    project: Joi.string().trim().max(120).allow('').optional(),
+    propertyType: Joi.string().trim().max(80).allow('').optional(),
+    budget: Joi.number().min(0).optional(),
+    requirement: Joi.string().trim().max(1000).allow('').optional(),
+    visitDate: Joi.date().iso().optional(),
+    visitReport: Joi.object({
+      visitedAt: Joi.date().iso().optional(),
+      customerName: Joi.string().trim().max(120).allow('').optional(),
+      contactNumber: Joi.string().trim().max(20).allow('').optional(),
+      salesPersonName: Joi.string().trim().max(120).allow('').optional(),
+      visitorName: Joi.string().trim().max(120).allow('').optional(),
+      projectVisited: Joi.string().trim().max(150).allow('').optional(),
+      propertyInterested: Joi.string().trim().max(150).allow('').optional(),
+      firstPreference: Joi.string().trim().max(150).allow('').optional(),
+      secondPreference: Joi.string().trim().max(150).allow('').optional(),
+      customerBudget: Joi.string().trim().max(60).allow('').optional(),
+      customerProfession: Joi.string().trim().max(120).allow('').optional(),
+      customerAddress: Joi.string().trim().max(300).allow('').optional(),
+      sourceOfCustomer: Joi.string().trim().max(60).allow('').optional(),
+      seniorPerson: Joi.string().trim().max(120).allow('').optional(),
+      visitNumber: Joi.string().valid('1st', '2nd', '3rd', '4th+').optional(),
+      photoUrl: Joi.string().trim().max(500).allow('').optional(),
+    }).optional(),
+  }),
+};
+
 const update = {
   params: idParam,
   body: Joi.object({
@@ -67,6 +98,15 @@ const markDropped = {
 
 const byId = { params: idParam };
 
+const moveBackFromVisit = {
+  params: idParam,
+  body: Joi.object({
+    targetStageOrder: Joi.number().integer().min(1).max(3).required(),
+    telesalesAssignedTo: objectId.required(),
+    reason: Joi.string().trim().min(15).max(2000).required(),
+  }),
+};
+
 const visitReport = {
   params: idParam,
   body: Joi.object({
@@ -77,6 +117,8 @@ const visitReport = {
     visitorName: Joi.string().trim().max(120).allow(''),
     projectVisited: Joi.string().trim().max(150).allow(''),
     propertyInterested: Joi.string().trim().max(150).allow(''),
+    firstPreference: Joi.string().trim().max(150).allow(''),
+    secondPreference: Joi.string().trim().max(150).allow(''),
     customerBudget: Joi.string().trim().max(60).allow(''),
     customerProfession: Joi.string().trim().max(120).allow(''),
     customerAddress: Joi.string().trim().max(300).allow(''),
@@ -87,4 +129,4 @@ const visitReport = {
   }),
 };
 
-module.exports = { fromEnquiry, update, list, moveStage, markLost, markDropped, byId, visitReport };
+module.exports = { fromEnquiry, walkin, update, list, moveStage, moveBackFromVisit, markLost, markDropped, byId, visitReport };

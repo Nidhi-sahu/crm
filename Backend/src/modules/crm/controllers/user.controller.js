@@ -43,4 +43,25 @@ const remove = asyncHandler(async (req, res) => {
   ApiResponse.ok(res, null, 'User deleted');
 });
 
-module.exports = { create, list, getOne, update, activate, deactivate, assignRole, remove };
+const unlock = asyncHandler(async (req, res) => {
+  const user = await userService.unlock(req.params.id, req.user);
+  ApiResponse.ok(res, { user }, 'User unlocked');
+});
+
+const loginHistory = asyncHandler(async (req, res) => {
+  const data = await userService.loginHistory(req.params.id);
+  ApiResponse.ok(res, data, 'Login history fetched');
+});
+
+module.exports = {
+  create,
+  list,
+  getOne,
+  update,
+  activate,
+  deactivate,
+  assignRole,
+  remove,
+  unlock,
+  loginHistory,
+};

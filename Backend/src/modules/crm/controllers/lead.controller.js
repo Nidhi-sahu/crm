@@ -9,6 +9,11 @@ const createFromEnquiry = asyncHandler(async (req, res) => {
   ApiResponse.created(res, { lead }, 'Lead created from enquiry');
 });
 
+const createWalkIn = asyncHandler(async (req, res) => {
+  const lead = await leadService.createWalkIn(req.body, req.user);
+  ApiResponse.created(res, { lead }, 'Walk-in client recorded');
+});
+
 const list = asyncHandler(async (req, res) => {
   const { items, total, page, limit } = await leadService.list(req.query, req.user);
   ApiResponse.ok(res, items, 'Leads fetched', buildMeta({ page, limit, total }));
@@ -32,6 +37,11 @@ const moveStage = asyncHandler(async (req, res) => {
 const undoStage = asyncHandler(async (req, res) => {
   const lead = await leadService.undoStage(req.params.id, req.user);
   ApiResponse.ok(res, { lead }, 'Stage reverted');
+});
+
+const moveBackFromVisit = asyncHandler(async (req, res) => {
+  const lead = await leadService.moveBackFromVisit(req.params.id, req.body, req.user);
+  ApiResponse.ok(res, { lead }, 'Lead moved back from Visit Confirmed');
 });
 
 const getHistory = asyncHandler(async (req, res) => {
@@ -71,6 +81,8 @@ const listVisitReports = asyncHandler(async (req, res) => {
 
 module.exports = {
   createFromEnquiry,
+  createWalkIn,
+  moveBackFromVisit,
   list,
   getOne,
   update,

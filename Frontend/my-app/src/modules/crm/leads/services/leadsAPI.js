@@ -3,6 +3,9 @@ import { axiosClient } from '../../../../shared/api/axiosClient';
 const BASE = '/leads';
 
 export const leadsAPI = {
+  createWalkIn(payload) {
+    return axiosClient.post(`${BASE}/walkin`, payload);
+  },
   list(params = {}) {
     return axiosClient.get(BASE, {
       params,
@@ -15,6 +18,9 @@ export const leadsAPI = {
   history(id) {
     return axiosClient.get(`${BASE}/${id}/history`);
   },
+  assignmentHistory(id) {
+    return axiosClient.get(`${BASE}/${id}/assignments`);
+  },
   update(id, payload) {
     return axiosClient.patch(`${BASE}/${id}`, payload);
   },
@@ -23,6 +29,9 @@ export const leadsAPI = {
   },
   undoStage(id) {
     return axiosClient.post(`${BASE}/${id}/undo-stage`);
+  },
+  moveBackFromVisit(id, payload) {
+    return axiosClient.post(`${BASE}/${id}/move-back-from-visit`, payload);
   },
   markWon(id) {
     return axiosClient.post(`${BASE}/${id}/mark-won`);

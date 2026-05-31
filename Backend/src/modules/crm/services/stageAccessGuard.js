@@ -7,25 +7,26 @@ const getRoleName = (user) => {
   return typeof user.roleId === 'object' ? user.roleId.name : null;
 };
 
+const getRoleCommentMaxStage = (user) => {
+  if (!user || !user.roleId || typeof user.roleId !== 'object') return null;
+  const v = user.roleId.commentMaxStageOrder;
+  return typeof v === 'number' && v > 0 ? v : null;
+};
+
 /**
  * Evaluate whether `user` can act on `lead` (comment / move stage / undo).
  * Returns { allowed, reason } — caller chooses how to surface.
  *
- * Rule (Tele Sales):
- *   - Pre-visit stages only (stages 1–3, BEFORE 'Visit Confirmed').
- *   - Cannot act when current stage >= 4.
- *   - Cannot move TO a stage >= 4.
+ * Rule (comment, all roles): role's commentMaxStageOrder caps the highest stage
+ * a user can comment on. null = unlimited. Set by Admin via Roles page.
  *
- * Rule (Visit Team — comment action only):
- *   - Can comment only from Visit stage onwards (stage >= 3).
- *   - Only the assigned Visit Team member (visitAssignedTo) can comment.
- *   - Other Visit Team members can still view.
+ * Rule (Visit Team — comment): can comment only from Visit stage onwards,
+ * and only by the assigned Visit Team member.
  *
- * Rule (Sales Person — comment action only):
- *   - Lead owner: can comment on any stage.
- *   - Non-owner: can only comment AFTER the Visit stage (order > 3).
- *   - Stage moves are not restricted here (handled by RBAC permission).
+ * Rule (Sales Person — comment): lead owner can comment any stage; non-owner
+ * only after the Visit stage.
  *
+ * Move/undo: no role-specific stage cap here — gated by RBAC permission only.
  * Administrator always bypasses.
  */
 const evaluateLeadAccess = (user, lead, action = 'act', extra = {}) => {
@@ -39,17 +40,13 @@ const evaluateLeadAccess = (user, lead, action = 'act', extra = {}) => {
   const currentStageOrder =
     (lead.currentStageId && lead.currentStageId.order) || 0;
 
-  if (roleName === ROLES.TELE_SALES) {
-    if (currentStageOrder >= VISIT_STAGE_ORDER) {
+  // Per-role comment cap (admin-configurable on Role). null = unlimited.
+  if (action === 'comment') {
+    const cap = getRoleCommentMaxStage(user);
+    if (cap && currentStageOrder > cap) {
       return {
         allowed: false,
-        reason: `Tele Sales cannot ${action} from the Visit stage onwards`,
-      };
-    }
-    if (extra.targetStageOrder && extra.targetStageOrder >= VISIT_STAGE_ORDER) {
-      return {
-        allowed: false,
-        reason: 'Tele Sales cannot move lead to or past the Visit stage',
+        reason: `Your role can comment only up to stage ${cap}`,
       };
     }
   }

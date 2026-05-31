@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const loginHistorySchema = new mongoose.Schema(
   {
     at: { type: Date, default: Date.now },
+    event: { type: String, enum: ['login', 'logout'], default: 'login' },
     ip: { type: String, default: '' },
     userAgent: { type: String, default: '' },
   },
@@ -44,6 +45,13 @@ const userSchema = new mongoose.Schema(
     },
     lastLoginAt: { type: Date, default: null },
     loginHistory: { type: [loginHistorySchema], default: [] },
+
+    // 48-hour inactivity lock — admin must unlock before the user can log in again.
+    isLocked: { type: Boolean, default: false, index: true },
+    lockReason: { type: String, default: '' },
+    lockedAt: { type: Date, default: null },
+    unlockedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    unlockedAt: { type: Date, default: null },
     passwordResetToken: { type: String, select: false, default: null },
     passwordResetExpires: { type: Date, select: false, default: null },
   },

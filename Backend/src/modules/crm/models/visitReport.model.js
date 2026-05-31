@@ -15,6 +15,9 @@ const visitReportSchema = new mongoose.Schema(
     visitorName: { type: String, trim: true, default: '' },
     projectVisited: { type: String, trim: true, default: '' },
     propertyInterested: { type: String, trim: true, default: '' },
+    // Per #34: customer's ranked property preferences captured after the visit.
+    firstPreference: { type: String, trim: true, default: '' },
+    secondPreference: { type: String, trim: true, default: '' },
     customerBudget: { type: String, trim: true, default: '' },
     customerProfession: { type: String, trim: true, default: '' },
     customerAddress: { type: String, trim: true, default: '' },

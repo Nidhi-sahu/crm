@@ -67,6 +67,33 @@ const leadSchema = new mongoose.Schema(
     actualStageAt: { type: Date, default: Date.now },
     lastActivityAt: { type: Date, default: Date.now, index: true },
 
+    // Walk-in clients enter post-visit directly (no prior enquiry pipeline).
+    isWalkIn: { type: Boolean, default: false, index: true },
+
+    // Set when this client matches an older idle lead handled by another sales
+    // person (same phone or email). Lets the UI show "previously associated with".
+    linkedPreviousLeadId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Lead',
+      default: null,
+      index: true,
+    },
+    // Same as above, but for cases where only an idle enquiry (no lead) existed.
+    linkedPreviousEnquiryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Enquiry',
+      default: null,
+      index: true,
+    },
+    // Per #30: link to a previously CLOSED lead (dropped/lost/won/rejected)
+    // for the same client — full historical context for the new lead.
+    linkedClosedLeadId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Lead',
+      default: null,
+      index: true,
+    },
+
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },

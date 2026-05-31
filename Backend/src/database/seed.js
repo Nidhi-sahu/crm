@@ -17,7 +17,7 @@ const rolePermissions = {
     'user:read',
     'enquiry:create', 'enquiry:read', 'enquiry:update',
     'qualification:create', 'qualification:read', 'qualification:update',
-    'lead:read', 'lead:update', 'lead:assign', 'lead:moveStage',
+    'lead:create', 'lead:read', 'lead:update', 'lead:assign', 'lead:moveStage',
     'leadStage:read',
     'comment:create', 'comment:read',
     'reminder:create', 'reminder:read', 'reminder:update', 'reminder:complete',
@@ -28,7 +28,7 @@ const rolePermissions = {
     'dashboard:view',
     'enquiry:read',
     'qualification:read',
-    'lead:read', 'lead:update', 'lead:moveStage',
+    'lead:create', 'lead:read', 'lead:update', 'lead:moveStage',
     'leadStage:read',
     'comment:create', 'comment:read',
     'reminder:create', 'reminder:read', 'reminder:update', 'reminder:complete',
@@ -64,6 +64,16 @@ const rolePermissions = {
     'reminder:read',
     'notification:read', 'notification:update',
   ],
+};
+
+// Default comment-stage cap per role. null = unlimited. Admin can change in UI.
+const roleCommentMaxStageOrder = {
+  [ROLES.ADMINISTRATOR]: null,
+  [ROLES.SALES_COORDINATOR]: null,
+  [ROLES.SALES_PERSON]: null,
+  [ROLES.LEAD_GENERATOR]: null,
+  [ROLES.TELE_SALES]: null,
+  [ROLES.VISIT_TEAM]: null,
 };
 
 const STAGES_SEED = [
@@ -207,9 +217,10 @@ const seed = async () => {
     await roleRepo.upsertByName(name, {
       description: `Default ${name} role`,
       permissions: perms,
+      commentMaxStageOrder: roleCommentMaxStageOrder[name] ?? null,
       isSystem: true,
     });
-    logger.info(`  - ${name}: ${perms.length} permissions`);
+    logger.info(`  - ${name}: ${perms.length} permissions, commentMaxStage=${roleCommentMaxStageOrder[name] ?? 'unlimited'}`);
   }
 
   const adminRole = await roleRepo.findByName(ROLES.ADMINISTRATOR);

@@ -10,6 +10,16 @@ const findById = (id) =>
     .populate({ path: 'updatedBy', ...POPULATE_USER })
     .populate({ path: 'assignedQualificationUser', ...POPULATE_USER })
     .populate({ path: 'assignedTo', ...POPULATE_USER })
+    .populate({
+      path: 'linkedClosedLeadId',
+      select: 'status lostReason closedAt lastActivityAt assignedTo currentStageId enquiryId createdBy createdAt',
+      populate: [
+        { path: 'assignedTo', select: 'name email' },
+        { path: 'currentStageId', select: 'name order' },
+        { path: 'enquiryId', select: 'clientName clientPhone clientEmail' },
+        { path: 'createdBy', select: 'name email' },
+      ],
+    })
     .lean();
 
 const findAll = ({ filter = {}, sort = { createdAt: -1 }, skip = 0, limit = 20 }) =>
@@ -17,6 +27,16 @@ const findAll = ({ filter = {}, sort = { createdAt: -1 }, skip = 0, limit = 20 }
     .populate({ path: 'createdBy', ...POPULATE_USER })
     .populate({ path: 'assignedQualificationUser', ...POPULATE_USER })
     .populate({ path: 'assignedTo', ...POPULATE_USER })
+    .populate({
+      path: 'linkedClosedLeadId',
+      select: 'status lostReason closedAt lastActivityAt assignedTo currentStageId enquiryId createdBy createdAt',
+      populate: [
+        { path: 'assignedTo', select: 'name email' },
+        { path: 'currentStageId', select: 'name order' },
+        { path: 'enquiryId', select: 'clientName clientPhone clientEmail' },
+        { path: 'createdBy', select: 'name email' },
+      ],
+    })
     .sort(sort)
     .skip(skip)
     .limit(limit)
@@ -79,6 +99,11 @@ const existsById = async (id) => {
   return !!doc;
 };
 
+const findIdsByMatch = async (filter) => {
+  const docs = await Enquiry.find(filter).select('_id').lean();
+  return docs.map((d) => d._id);
+};
+
 const searchIds = async (term) => {
   const regex = { $regex: term, $options: 'i' };
   const docs = await Enquiry.find({
@@ -104,6 +129,7 @@ module.exports = {
   remove,
   existsById,
   searchIds,
+  findIdsByMatch,
   existsByPhone,
   findExistingPhones,
   bulkInsert,

@@ -34,8 +34,11 @@ const remove = asyncHandler(async (req, res) => {
 });
 
 const checkPhone = asyncHandler(async (req, res) => {
-  const exists = await enquiryService.phoneExists(req.query.phone, req.query.excludeId);
-  ApiResponse.ok(res, { exists }, 'Phone checked');
+  const result = await enquiryService.phoneExistsDetailed(
+    req.query.phone,
+    req.query.excludeId,
+  );
+  ApiResponse.ok(res, result, 'Phone checked');
 });
 
 const bulkImport = asyncHandler(async (req, res) => {

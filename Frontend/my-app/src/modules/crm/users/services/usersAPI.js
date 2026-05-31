@@ -15,4 +15,10 @@ export const usersAPI = {
   update(id, payload) {
     return axiosClient.patch(`${BASE}/${id}`, payload);
   },
+  unlock(id) {
+    return axiosClient.post(`${BASE}/${id}/unlock`);
+  },
+  loginHistory(id) {
+    return axiosClient.get(`${BASE}/${id}/login-history`);
+  },
 };

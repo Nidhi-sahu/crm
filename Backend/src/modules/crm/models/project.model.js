@@ -2,6 +2,21 @@ const mongoose = require('mongoose');
 
 const PROJECT_STATUS = ['ongoing', 'upcoming', 'completed'];
 
+const ACCOUNT_TYPES = ['Savings', 'Current'];
+
+const bankDetailsSchema = new mongoose.Schema(
+  {
+    bankName: { type: String, trim: true, default: '' },
+    accountHolderName: { type: String, trim: true, default: '' },
+    accountNumber: { type: String, trim: true, default: '' },
+    ifscCode: { type: String, trim: true, uppercase: true, default: '' },
+    branch: { type: String, trim: true, default: '' },
+    accountType: { type: String, enum: ['', ...ACCOUNT_TYPES], default: '' },
+    upiId: { type: String, trim: true, default: '' },
+  },
+  { _id: false },
+);
+
 const projectSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true, trim: true },
@@ -10,6 +25,7 @@ const projectSchema = new mongoose.Schema(
     status: { type: String, enum: PROJECT_STATUS, default: 'ongoing', index: true },
     description: { type: String, trim: true, default: '' },
     isActive: { type: Boolean, default: true, index: true },
+    bankDetails: { type: bankDetailsSchema, default: () => ({}) },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },
@@ -18,3 +34,4 @@ const projectSchema = new mongoose.Schema(
 
 module.exports = mongoose.model('Project', projectSchema);
 module.exports.PROJECT_STATUS = PROJECT_STATUS;
+module.exports.ACCOUNT_TYPES = ACCOUNT_TYPES;

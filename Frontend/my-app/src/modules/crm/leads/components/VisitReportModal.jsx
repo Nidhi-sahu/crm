@@ -41,6 +41,8 @@ const buildInitial = (lead) => {
     visitorName: '',
     projectVisited: e.project || lead?.project || '',
     propertyInterested: e.propertyType || lead?.propertyType || '',
+    firstPreference: '',
+    secondPreference: '',
     customerBudget: budget ? String(budget) : '',
     customerProfession: '',
     customerAddress: '',
@@ -146,6 +148,8 @@ export function VisitReportModal({ open, lead, nextStage, saving, saveError, onC
             <Input label="Customer Profession" value={form.customerProfession} onChange={set('customerProfession')} />
             <Input label="Source of Customer" value={form.sourceOfCustomer} onChange={set('sourceOfCustomer')} />
             <Input label="Property Interested In *" value={form.propertyInterested} onChange={set('propertyInterested')} error={errors.propertyInterested} />
+            <Input label="First Preference (Primary Villa)" placeholder="e.g. Villa A" value={form.firstPreference} onChange={set('firstPreference')} />
+            <Input label="Second Preference (Secondary Villa)" placeholder="e.g. Villa B" value={form.secondPreference} onChange={set('secondPreference')} />
           </div>
           <Textarea
             label="Customer Address"

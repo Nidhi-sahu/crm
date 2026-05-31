@@ -1,3 +1,5 @@
+import { AutoAssignedBadge } from './AutoAssignedBadge';
+
 const Cell = ({ children, className = '' }) => (
   <td className={`px-4 py-3 align-middle text-[13px] text-slate-700 ${className}`.trim()}>
     {children || <span className="text-slate-300">—</span>}
@@ -17,26 +19,7 @@ const initials = (name = '') =>
     .map((p) => p[0]?.toUpperCase() || '')
     .join('') || '?';
 
-const StageChip = ({ stage }) => {
-  if (!stage) return <span className="text-slate-300">—</span>;
-  const name = stage.name || stage;
-  const color = stage.color || '#8FCBFF';
-  return (
-    <span
-      className="inline-flex max-w-[180px] items-center gap-1.5 text-[13px] font-medium text-slate-700"
-      title={name}
-    >
-      <span
-        className="h-2 w-2 shrink-0 rounded-full"
-        style={{ background: color }}
-        aria-hidden="true"
-      />
-      <span className="truncate">{name}</span>
-    </span>
-  );
-};
-
-export function LeadAssignmentRow({ lead, onAssign }) {
+export function LeadAssignmentRow({ lead, latestAssignment, onAssign }) {
   const enquiry = lead.enquiryId || {};
 
   return (
@@ -73,7 +56,15 @@ export function LeadAssignmentRow({ lead, onAssign }) {
         </span>
       </Cell>
       <Cell>
-        <StageChip stage={lead.currentStageId} />
+        {latestAssignment ? (
+          <AutoAssignedBadge assignment={latestAssignment} />
+        ) : lead.assignedTo ? (
+          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+            Assigned
+          </span>
+        ) : (
+          <span className="text-[11px] text-slate-400">Unassigned</span>
+        )}
       </Cell>
       <Cell className="text-right">
         <button

@@ -26,7 +26,10 @@ export function UsersTable({
   isLoading,
   isEmpty,
   canEdit,
+  isAdmin,
   onEdit,
+  onUnlock,
+  onViewHistory,
 }) {
   const visibleCols = order
     .filter((k) => !hiddenKeys.includes(k))
@@ -101,7 +104,10 @@ export function UsersTable({
                   order={order}
                   hiddenKeys={hiddenKeys}
                   canEdit={canEdit}
+                  isAdmin={isAdmin}
                   onEdit={onEdit}
+                  onUnlock={onUnlock}
+                  onViewHistory={onViewHistory}
                 />
               ))}
           </tbody>

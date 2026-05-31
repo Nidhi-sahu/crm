@@ -29,6 +29,7 @@ export default function LeadAssignmentPage() {
     filters,
     salesPersons,
     workload,
+    latestByLead,
     saving,
     saveError,
     totals,
@@ -128,6 +129,7 @@ export default function LeadAssignmentPage() {
         leads={leads}
         isLoading={isLoading}
         isEmpty={isEmpty}
+        latestByLead={latestByLead}
         onAssign={canAssign ? openAssign : undefined}
       />
 

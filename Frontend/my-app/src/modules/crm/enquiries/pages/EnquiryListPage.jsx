@@ -9,6 +9,7 @@ import { ManageColumnsModal } from '../components/ManageColumnsModal';
 import { BulkImportModal } from '../components/BulkImportModal';
 import { Pagination } from '../components/Pagination';
 import { EnquiryFormModal } from '../components/EnquiryFormModal';
+import { leadsService } from '../../leads/services/leadsService';
 import { EnquiryDetailsModal } from '../components/EnquiryDetailsModal';
 import { QualificationModal } from '../../qualifications/components/QualificationModal';
 import { Alert } from '../../../../shared/components/Alert';
@@ -75,7 +76,24 @@ export default function EnquiryListPage() {
 
   const handleSubmit = async (payload) => {
     try {
-      if (formModal.mode === 'edit' && formModal.enquiry?._id) {
+      if (payload.__walkIn) {
+        const { __walkIn, ...walkPayload } = payload;
+        void __walkIn;
+        const lead = await leadsService.createWalkIn(walkPayload);
+        const prev = lead?.linkedPreviousLeadId;
+        if (prev) {
+          const prevSalesPerson =
+            prev.assignedTo?.name || prev.createdBy?.name || 'another sales person';
+          setToast({
+            open: true,
+            tone: 'warning',
+            message: `Walk-in added. Note: previously associated with ${prevSalesPerson} (idle, no activity).`,
+          });
+        } else {
+          setToast({ open: true, tone: 'success', message: 'Walk-in client added' });
+        }
+        reload();
+      } else if (formModal.mode === 'edit' && formModal.enquiry?._id) {
         await update(formModal.enquiry._id, payload);
         setToast({ open: true, tone: 'success', message: 'Enquiry updated' });
       } else {

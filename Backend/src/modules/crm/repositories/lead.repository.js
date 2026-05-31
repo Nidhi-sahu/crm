@@ -13,6 +13,30 @@ const findById = (id) =>
     .populate({ path: 'assignedTo', select: 'name email' })
     .populate({ path: 'visitAssignedTo', select: 'name email' })
     .populate({ path: 'createdBy', select: 'name email' })
+    .populate({
+      path: 'linkedPreviousLeadId',
+      select: 'assignedTo createdBy createdAt enquiryId',
+      populate: [
+        { path: 'assignedTo', select: 'name email' },
+        { path: 'createdBy', select: 'name email' },
+        { path: 'enquiryId', select: 'clientName' },
+      ],
+    })
+    .populate({
+      path: 'linkedPreviousEnquiryId',
+      select: 'clientName createdBy createdAt',
+      populate: [{ path: 'createdBy', select: 'name email' }],
+    })
+    .populate({
+      path: 'linkedClosedLeadId',
+      select: 'status lostReason closedAt lastActivityAt assignedTo currentStageId enquiryId createdBy createdAt',
+      populate: [
+        { path: 'assignedTo', select: 'name email' },
+        { path: 'currentStageId', select: 'name order' },
+        { path: 'enquiryId', select: 'clientName clientPhone clientEmail' },
+        { path: 'createdBy', select: 'name email' },
+      ],
+    })
     .lean();
 
 const findByEnquiryId = (enquiryId) => Lead.findOne({ enquiryId }).lean();
@@ -60,6 +84,22 @@ const moveStage = (id, { toStageId, actor, plannedAt, actualAt }) =>
 const remove = (id) => Lead.findByIdAndDelete(id);
 
 const countInStage = (stageId) => Lead.countDocuments({ currentStageId: stageId });
+
+const findActiveByEnquiryIds = (enquiryIds) =>
+  Lead.find({ enquiryId: { $in: enquiryIds }, status: 'active' })
+    .populate({ path: 'enquiryId', select: 'clientName clientPhone clientEmail' })
+    .populate({ path: 'assignedTo', select: 'name email' })
+    .populate({ path: 'createdBy', select: 'name email' })
+    .lean();
+
+const findClosedByEnquiryIds = (enquiryIds) =>
+  Lead.find({ enquiryId: { $in: enquiryIds }, status: { $ne: 'active' } })
+    .populate({ path: 'enquiryId', select: 'clientName clientPhone clientEmail' })
+    .populate({ path: 'assignedTo', select: 'name email' })
+    .populate({ path: 'currentStageId', select: 'name order' })
+    .populate({ path: 'createdBy', select: 'name email' })
+    .sort({ closedAt: -1, updatedAt: -1 })
+    .lean();
 
 const findUnassignedOlderThan = (date, limit = 50) =>
   Lead.find({
@@ -134,6 +174,8 @@ module.exports = {
   moveStage,
   remove,
   countInStage,
+  findActiveByEnquiryIds,
+  findClosedByEnquiryIds,
   findUnassignedOlderThan,
   claimForAssignment,
   setAssignment,

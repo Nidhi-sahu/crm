@@ -144,29 +144,35 @@ const undoLast = async (leadId, user) => {
     throw ApiError.forbidden(access.reason);
   }
 
-  const last = await leadStageHistoryRepo.findLastForLead(leadId);
-  if (!last) throw ApiError.badRequest('No stage history to undo');
-  if (!last.fromStageId) throw ApiError.badRequest('Cannot undo the initial stage');
+  // Revert = step back to the immediately previous stage (by order),
+  // so "Undo Stage" always moves one stage back — never forward.
+  const currentId = (lead.currentStageId && (lead.currentStageId._id || lead.currentStageId));
+  const currentStage = await leadStageRepo.findById(currentId);
+  if (!currentStage) throw ApiError.badRequest('Current stage not found');
 
-  const fromStage = last.fromStageId;
-  const toStage = last.toStageId;
+  const stages = await leadStageRepo.findActive();
+  const prevStage = stages
+    .filter((s) => s.order < currentStage.order)
+    .sort((a, b) => b.order - a.order)[0];
+  if (!prevStage) {
+    throw ApiError.badRequest('Lead is already at the first stage — cannot revert');
+  }
 
   await leadStageHistoryRepo.create({
     leadId: lead._id,
-    fromStageId: toStage && toStage._id,
-    toStageId: fromStage && fromStage._id,
-    fromStageName: toStage ? toStage.name : '',
-    toStageName: fromStage ? fromStage.name : '',
+    fromStageId: currentStage._id,
+    toStageId: prevStage._id,
+    fromStageName: currentStage.name,
+    toStageName: prevStage.name,
     movedBy: user._id,
     movedAt: new Date(),
     actualAt: new Date(),
-    comment: `Undo of move to "${toStage ? toStage.name : 'unknown'}"`,
+    comment: `Reverted from "${currentStage.name}" to "${prevStage.name}"`,
     isUndo: true,
-    undoneEntryId: last._id,
   });
 
   await leadRepo.moveStage(lead._id, {
-    toStageId: fromStage._id,
+    toStageId: prevStage._id,
     actor: user,
     actualAt: new Date(),
   });
@@ -177,11 +183,93 @@ const undoLast = async (leadId, user) => {
     actor: user,
     refType: 'lead',
     refId: lead._id,
-    oldData: { stageId: toStage && toStage._id, stageName: toStage && toStage.name },
-    newData: { stageId: fromStage._id, stageName: fromStage.name },
+    oldData: { stageId: currentStage._id, stageName: currentStage.name },
+    newData: { stageId: prevStage._id, stageName: prevStage.name },
   });
 
   return leadRepo.findById(lead._id);
 };
 
-module.exports = { canMove, move, undoLast };
+// Admin-only: move a lead BACK from "Visit Confirmed" (stage 4) to any earlier
+// telesales stage AND reassign telesales executive (#29). Reason mandatory.
+const VISIT_CONFIRMED_ORDER = 4;
+
+const moveBackFromVisit = async (
+  leadId,
+  { targetStageOrder, telesalesAssignedTo, reason },
+  user,
+) => {
+  const lead = await leadRepo.findById(leadId);
+  if (!lead) throw ApiError.notFound('Lead not found');
+  if (LEAD_TERMINAL_STATUSES.includes(lead.status)) {
+    throw ApiError.badRequest(`Lead is ${lead.status} — cannot move`);
+  }
+
+  const currentStage = lead.currentStageId;
+  if (!currentStage || currentStage.order !== VISIT_CONFIRMED_ORDER) {
+    throw ApiError.badRequest(
+      'This action is only allowed when the lead is at Visit Confirmed stage',
+    );
+  }
+
+  if (!reason || String(reason).trim().length < 15) {
+    throw ApiError.badRequest(
+      'Reason is mandatory for moving the lead back (min 15 characters)',
+    );
+  }
+  if (!targetStageOrder || Number(targetStageOrder) >= VISIT_CONFIRMED_ORDER) {
+    throw ApiError.badRequest('Select a stage earlier than Visit Confirmed');
+  }
+  if (!telesalesAssignedTo) {
+    throw ApiError.badRequest('Telesales executive selection is mandatory');
+  }
+
+  const stages = await leadStageRepo.findActive();
+  const targetStage = stages.find((s) => s.order === Number(targetStageOrder));
+  if (!targetStage) throw ApiError.badRequest('Target stage not found');
+
+  await leadStageHistoryRepo.create({
+    leadId: lead._id,
+    fromStageId: currentStage._id,
+    toStageId: targetStage._id,
+    fromStageName: currentStage.name,
+    toStageName: targetStage.name,
+    movedBy: user._id,
+    movedAt: new Date(),
+    actualAt: new Date(),
+    comment: `Moved back to telesales — ${String(reason).trim()}`,
+    isUndo: true,
+  });
+
+  await leadRepo.moveStage(lead._id, {
+    toStageId: targetStage._id,
+    actor: user,
+    actualAt: new Date(),
+  });
+
+  // Reassign enquiry telesales executive
+  const enquiryRepo = require('../repositories/enquiry.repository');
+  await enquiryRepo.update(lead.enquiryId._id || lead.enquiryId, {
+    assignedTo: telesalesAssignedTo,
+    updatedBy: user._id,
+  });
+
+  auditLogService.log({
+    module: 'lead',
+    action: 'moveBackFromVisit',
+    actor: user,
+    refType: 'lead',
+    refId: lead._id,
+    oldData: { stageId: currentStage._id, stageName: currentStage.name },
+    newData: {
+      stageId: targetStage._id,
+      stageName: targetStage.name,
+      telesalesAssignedTo,
+    },
+    meta: { reason: String(reason).trim() },
+  });
+
+  return leadRepo.findById(lead._id);
+};
+
+module.exports = { canMove, move, undoLast, moveBackFromVisit };

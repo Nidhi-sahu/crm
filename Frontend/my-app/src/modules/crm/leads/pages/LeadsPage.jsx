@@ -272,6 +272,7 @@ export default function LeadsPage() {
           setToast({ open: true, tone: 'success', message: 'Comment added' });
         }}
       />
+
     </div>
   );
 }

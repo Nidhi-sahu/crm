@@ -5,6 +5,8 @@ const roleSchema = new mongoose.Schema(
     name: { type: String, required: true, unique: true, trim: true },
     description: { type: String, trim: true, default: '' },
     permissions: [{ type: String, trim: true }],
+    // Highest lead-stage order this role can comment on (null = unlimited).
+    commentMaxStageOrder: { type: Number, default: null },
     isSystem: { type: Boolean, default: false },
   },
   { timestamps: true }

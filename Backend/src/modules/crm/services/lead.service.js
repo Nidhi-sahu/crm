@@ -17,6 +17,197 @@ const {
   LEAD_TERMINAL_STATUSES,
 } = require('../../../constants/statuses');
 
+// Find an idle PREVIOUS ENQUIRY (no lead derived from it, no comments,
+// status still NEW). Used when an enquiry was added by another user but
+// never qualified — same client should still be allowed to be added.
+const findIdlePreviousEnquiry = async ({ phone, email, excludeEnquiryId }) => {
+  const phoneTrim = (phone || '').trim();
+  const emailTrim = (email || '').trim().toLowerCase();
+  if (!phoneTrim && !emailTrim) return null;
+
+  const filter = { $or: [] };
+  if (phoneTrim) filter.$or.push({ clientPhone: phoneTrim });
+  if (emailTrim) filter.$or.push({ clientEmail: emailTrim });
+
+  const matchingIds = await enquiryRepo.findIdsByMatch(filter);
+  if (!matchingIds.length) return null;
+
+  for (const enqId of matchingIds) {
+    if (excludeEnquiryId && String(enqId) === String(excludeEnquiryId)) continue;
+    const lead = await leadRepo.findByEnquiryId(enqId);
+    if (lead) continue; // lead exists — handled by findIdlePreviousLead
+    const enquiry = await enquiryRepo.findById(enqId);
+    if (!enquiry) continue;
+    if (enquiry.status && enquiry.status !== 'new') continue;
+    const commentCount = await commentRepo.countAll({
+      referenceType: 'enquiry',
+      referenceId: enquiry._id,
+    });
+    if (commentCount === 0) return enquiry;
+  }
+  return null;
+};
+
+// Per #30: find a CLOSED previous lead for the same client (most recent first).
+// "Closed" = any non-active terminal status (dropped, lost, won, etc.).
+const findClosedPreviousLead = async ({ phone, email, excludeLeadId }) => {
+  const phoneTrim = (phone || '').trim();
+  const emailTrim = (email || '').trim().toLowerCase();
+  if (!phoneTrim && !emailTrim) return null;
+
+  const enqFilter = { $or: [] };
+  if (phoneTrim) enqFilter.$or.push({ clientPhone: phoneTrim });
+  if (emailTrim) enqFilter.$or.push({ clientEmail: emailTrim });
+
+  const matchingEnquiries = await enquiryRepo.findIdsByMatch(enqFilter);
+  if (!matchingEnquiries.length) return null;
+
+  const candidates = await leadRepo.findClosedByEnquiryIds(matchingEnquiries);
+  for (const lead of candidates) {
+    if (excludeLeadId && String(lead._id) === String(excludeLeadId)) continue;
+    return lead;
+  }
+  return null;
+};
+
+// Find an existing IDLE lead for the same client (by phone or email) — used
+// to flag "previously associated with another sales person" when the same
+// client is added again. "Idle" = no comments, no visit reports, only the
+// initial stage-history entry.
+const findIdlePreviousLead = async ({ phone, email, excludeLeadId }) => {
+  const phoneTrim = (phone || '').trim();
+  const emailTrim = (email || '').trim().toLowerCase();
+  if (!phoneTrim && !emailTrim) return null;
+
+  const enquiryFilter = { $or: [] };
+  if (phoneTrim) enquiryFilter.$or.push({ clientPhone: phoneTrim });
+  if (emailTrim) enquiryFilter.$or.push({ clientEmail: emailTrim });
+  const matchingEnquiries = await enquiryRepo.findIdsByMatch(enquiryFilter);
+  if (!matchingEnquiries.length) return null;
+
+  const candidates = await leadRepo.findActiveByEnquiryIds(matchingEnquiries);
+  for (const lead of candidates) {
+    if (excludeLeadId && String(lead._id) === String(excludeLeadId)) continue;
+    const [commentCount, visitCount, historyCount] = await Promise.all([
+      commentRepo.countAll({ referenceType: 'lead', referenceId: lead._id }),
+      visitReportRepo.countByLeadId(lead._id),
+      leadStageHistoryRepo.countByLeadId(lead._id),
+    ]);
+    if (commentCount === 0 && visitCount === 0 && historyCount <= 1) {
+      return lead;
+    }
+  }
+  return null;
+};
+
+// Walk-in clients arrive at the site without prior enquiry/qualification.
+// Create everything in one call: Enquiry (no phone) + Lead at post-visit stage
+// (order 5 — Feedback Call) + StageHistory + VisitReport. Marked isWalkIn=true.
+const createWalkIn = async (data, actor) => {
+  const stages = await leadStageRepo.findActive();
+  const targetStage =
+    stages.find((s) => s.order === 5) || stages.find((s) => s.order > 4);
+  if (!targetStage) {
+    throw ApiError.badRequest('Post-visit stage (order 5) not configured');
+  }
+
+  const enquiry = await enquiryRepo.create({
+    clientName: data.clientName,
+    clientEmail: data.clientEmail || '',
+    companyName: data.companyName || '',
+    source: 'walkIn',
+    project: data.project || '',
+    propertyType: data.propertyType || '',
+    budgetMax: Number(data.budget) || 0,
+    requirement: data.requirement || '',
+    status: ENQUIRY_STATUS.QUALIFIED,
+    isWalkIn: true,
+    createdBy: actor._id,
+  });
+
+  const lead = await leadRepo.create({
+    enquiryId: enquiry._id,
+    qualificationId: null,
+    currentStageId: targetStage._id,
+    source: 'walkIn',
+    project: data.project || '',
+    propertyType: data.propertyType || '',
+    budget: Number(data.budget) || 0,
+    expectedRevenue: Number(data.budget) || 0,
+    status: LEAD_STATUS.ACTIVE,
+    actualStageAt: new Date(),
+    lastActivityAt: new Date(),
+    isWalkIn: true,
+    createdBy: actor._id,
+  });
+
+  await leadStageHistoryRepo.create({
+    leadId: lead._id,
+    fromStageId: null,
+    toStageId: targetStage._id,
+    fromStageName: '',
+    toStageName: targetStage.name,
+    movedBy: actor._id,
+    movedAt: new Date(),
+    actualAt: new Date(),
+    comment: 'Walk-in client — visit done, started at post-visit stage',
+  });
+
+  await enquiryRepo.updateStatus(enquiry._id, ENQUIRY_STATUS.CONVERTED, actor._id);
+
+  // Detect previous association — idle LEAD or idle ENQUIRY (walk-ins: email only).
+  const previousLead = await findIdlePreviousLead({
+    phone: '',
+    email: enquiry.clientEmail,
+    excludeLeadId: lead._id,
+  });
+  if (previousLead) {
+    await leadRepo.update(lead._id, { linkedPreviousLeadId: previousLead._id });
+  } else {
+    const previousEnq = await findIdlePreviousEnquiry({
+      phone: '',
+      email: enquiry.clientEmail,
+      excludeEnquiryId: enquiry._id,
+    });
+    if (previousEnq) {
+      await leadRepo.update(lead._id, { linkedPreviousEnquiryId: previousEnq._id });
+    }
+  }
+  const closedLead = await findClosedPreviousLead({
+    phone: '',
+    email: enquiry.clientEmail,
+    excludeLeadId: lead._id,
+  });
+  if (closedLead) {
+    await leadRepo.update(lead._id, { linkedClosedLeadId: closedLead._id });
+  }
+
+  if (data.visitReport && Object.keys(data.visitReport).length > 0) {
+    await visitReportRepo.create({
+      leadId: lead._id,
+      visitedAt: data.visitReport.visitedAt || data.visitDate || new Date(),
+      customerName: data.visitReport.customerName || data.clientName || '',
+      contactNumber: data.visitReport.contactNumber || '',
+      salesPersonName: data.visitReport.salesPersonName || '',
+      visitorName: data.visitReport.visitorName || '',
+      projectVisited: data.visitReport.projectVisited || data.project || '',
+      propertyInterested: data.visitReport.propertyInterested || '',
+      firstPreference: data.visitReport.firstPreference || '',
+      secondPreference: data.visitReport.secondPreference || '',
+      customerBudget: data.visitReport.customerBudget || '',
+      customerProfession: data.visitReport.customerProfession || '',
+      customerAddress: data.visitReport.customerAddress || '',
+      sourceOfCustomer: data.visitReport.sourceOfCustomer || 'Walk-in',
+      seniorPerson: data.visitReport.seniorPerson || '',
+      visitNumber: data.visitReport.visitNumber || '1st',
+      photoUrl: data.visitReport.photoUrl || '',
+      createdBy: actor._id,
+    });
+  }
+
+  return leadRepo.findById(lead._id);
+};
+
 const createFromEnquiry = async (enquiryId, actor) => {
   const enquiry = await enquiryRepo.findById(enquiryId);
   if (!enquiry) throw ApiError.notFound('Enquiry not found');
@@ -65,6 +256,33 @@ const createFromEnquiry = async (enquiryId, actor) => {
   });
 
   await enquiryRepo.updateStatus(enquiry._id, ENQUIRY_STATUS.CONVERTED, actor._id);
+
+  // Detect previous association — idle LEAD, else idle ENQUIRY.
+  const previousLead = await findIdlePreviousLead({
+    phone: enquiry.clientPhone,
+    email: enquiry.clientEmail,
+    excludeLeadId: lead._id,
+  });
+  if (previousLead) {
+    await leadRepo.update(lead._id, { linkedPreviousLeadId: previousLead._id });
+  } else {
+    const previousEnq = await findIdlePreviousEnquiry({
+      phone: enquiry.clientPhone,
+      email: enquiry.clientEmail,
+      excludeEnquiryId: enquiry._id,
+    });
+    if (previousEnq) {
+      await leadRepo.update(lead._id, { linkedPreviousEnquiryId: previousEnq._id });
+    }
+  }
+  const closedLeadFromEnq = await findClosedPreviousLead({
+    phone: enquiry.clientPhone,
+    email: enquiry.clientEmail,
+    excludeLeadId: lead._id,
+  });
+  if (closedLeadFromEnq) {
+    await leadRepo.update(lead._id, { linkedClosedLeadId: closedLeadFromEnq._id });
+  }
 
   return leadRepo.findById(lead._id);
 };
@@ -188,6 +406,9 @@ const moveStage = (leadId, payload, actor) =>
 
 const undoStage = (leadId, actor) => workflowEngine.undoLast(leadId, actor);
 
+const moveBackFromVisit = (leadId, body, actor) =>
+  workflowEngine.moveBackFromVisit(leadId, body, actor);
+
 const getHistory = (leadId) => leadStageHistoryRepo.findByLeadId(leadId);
 
 const markWon = async (id, actor) => {
@@ -242,11 +463,16 @@ const remove = async (id) => {
 
 module.exports = {
   createFromEnquiry,
+  createWalkIn,
+  findIdlePreviousLead,
+  findIdlePreviousEnquiry,
+  findClosedPreviousLead,
   list,
   getById,
   update,
   moveStage,
   undoStage,
+  moveBackFromVisit,
   getHistory,
   markWon,
   markLost,

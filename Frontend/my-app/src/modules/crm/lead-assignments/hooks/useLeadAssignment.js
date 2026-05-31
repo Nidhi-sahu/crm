@@ -65,6 +65,18 @@ export function useLeadAssignment() {
     };
   }, [state.leads.items, state.salesPersons.items]);
 
+  // Merge each sales person with their current active-lead count (from workload)
+  // so the assignment UI can show "Name — N active" in the dropdown.
+  const salesPersonsWithActive = useMemo(() => {
+    const byUserId = Object.fromEntries(
+      (state.workload.items || []).map((w) => [String(w.userId), w]),
+    );
+    return (state.salesPersons.items || []).map((u) => ({
+      ...u,
+      activeLeads: byUserId[String(u._id)]?.active ?? 0,
+    }));
+  }, [state.salesPersons.items, state.workload.items]);
+
   return {
     leads: state.leads.items,
     leadsStatus: state.leads.status,
@@ -75,7 +87,7 @@ export function useLeadAssignment() {
     pagination: state.pagination,
     filters: state.filters,
     latestByLead: state.history.latestByLead,
-    salesPersons: state.salesPersons.items,
+    salesPersons: salesPersonsWithActive,
     salesPersonsLoading: state.salesPersons.status === 'loading',
     workload: state.workload.items,
     saving: state.saving,

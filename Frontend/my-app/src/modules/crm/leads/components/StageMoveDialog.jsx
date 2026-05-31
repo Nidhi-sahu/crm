@@ -6,9 +6,10 @@ import { Textarea } from '../../../../shared/components/Textarea';
 
 export function StageMoveDialog({
   open,
-  mode = 'move', // 'move' | 'won' | 'undo'
+  mode = 'move', // 'move' | 'won' | 'undo' | 'complete'
   lead,
   stages,
+  nextStage,
   saving,
   onClose,
   onConfirmMove,
@@ -33,6 +34,7 @@ export function StageMoveDialog({
   const currentStage = ordered.find((s) => String(s._id) === String(currentId));
   const isWon = mode === 'won';
   const isUndo = mode === 'undo';
+  const isComplete = mode === 'complete';
 
   const stageOptions = ordered
     .filter((s) => String(s._id) !== String(currentId))
@@ -40,17 +42,29 @@ export function StageMoveDialog({
 
   const commentMissing = !comment.trim();
 
-  const title = isWon ? 'Mark Lead as Won' : isUndo ? 'Undo Stage Move' : 'Change Stage';
+  const title = isWon
+    ? 'Mark Lead as Won'
+    : isUndo
+    ? 'Undo Stage Move'
+    : isComplete
+    ? 'Complete Stage'
+    : 'Change Stage';
 
   const handleConfirm = () => {
     if (commentMissing) return;
     if (isWon) onConfirmWon(comment.trim());
     else if (isUndo) onConfirmUndo(comment.trim());
-    else onConfirmMove(targetId, comment.trim());
+    else if (isComplete) {
+      if (!nextStage?._id) return;
+      onConfirmMove(nextStage._id, comment.trim());
+    } else onConfirmMove(targetId, comment.trim());
   };
 
   const confirmDisabled =
-    saving || commentMissing || (!isWon && !isUndo && !targetId);
+    saving ||
+    commentMissing ||
+    (!isWon && !isUndo && !isComplete && !targetId) ||
+    (isComplete && !nextStage?._id);
 
   return (
     <Modal
@@ -64,7 +78,13 @@ export function StageMoveDialog({
             Cancel
           </Button>
           <Button variant="primary" onClick={handleConfirm} loading={saving} disabled={confirmDisabled}>
-            {isWon ? 'Confirm — Mark Won' : isUndo ? 'Confirm Undo' : 'Confirm Move'}
+            {isWon
+              ? 'Confirm — Mark Won'
+              : isUndo
+              ? 'Confirm Undo'
+              : isComplete
+              ? 'Confirm — Complete Stage'
+              : 'Confirm Move'}
           </Button>
         </div>
       }
@@ -85,6 +105,28 @@ export function StageMoveDialog({
           <p className="text-sm text-slate-700">
             This will revert the lead to its <strong>previous stage</strong>. Add a reason below.
           </p>
+        ) : isComplete ? (
+          <>
+            <p className="text-sm text-slate-700">
+              This will complete the current stage and move the lead to the next stage.
+            </p>
+            <div className="flex flex-wrap items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-xs">
+              <span className="text-slate-500">From:</span>
+              <span className="rounded-full bg-white px-2 py-0.5 font-medium text-slate-700">
+                {currentStage?.name || '—'}
+              </span>
+              <span className="text-slate-400">→</span>
+              <span className="text-slate-500">To:</span>
+              <span className="rounded-full bg-brand-100 px-2 py-0.5 font-semibold text-brand-700">
+                {nextStage?.name || '—'}
+              </span>
+            </div>
+            {!nextStage?._id && (
+              <p className="text-[11px] text-rose-600">
+                No next stage configured — cannot complete from here.
+              </p>
+            )}
+          </>
         ) : (
           <>
             <div className="space-y-0.5">

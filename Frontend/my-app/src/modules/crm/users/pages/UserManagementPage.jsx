@@ -6,6 +6,8 @@ import { UserKPIs } from '../components/UserKPIs';
 import { UsersFiltersBar } from '../components/UsersFiltersBar';
 import { UsersTable } from '../components/UsersTable';
 import { UserFormModal } from '../components/UserFormModal';
+import { LoginHistoryModal } from '../components/LoginHistoryModal';
+import { usersService } from '../services/usersService';
 import { Pagination } from '../../enquiries/components/Pagination';
 import { Alert } from '../../../../shared/components/Alert';
 import { Toast } from '../../../../shared/components/Toast';
@@ -15,7 +17,9 @@ import {
 } from '../constants/userColumns';
 
 export default function UserManagementPage() {
-  const { can } = useAuth();
+  const { can, user: currentUser } = useAuth();
+  const isAdmin =
+    (currentUser?.roleId?.name || currentUser?.role?.name) === 'Administrator';
   const {
     items,
     pagination,
@@ -57,6 +61,7 @@ export default function UserManagementPage() {
   }, [colState]);
 
   const [modal, setModal] = useState({ open: false, mode: 'create', user: null });
+  const [historyModal, setHistoryModal] = useState({ open: false, user: null });
   const [toast, setToast] = useState({ open: false, tone: 'success', message: '' });
 
   if (!can(PERMISSIONS.user.read)) {
@@ -179,7 +184,22 @@ export default function UserManagementPage() {
         isLoading={isLoading}
         isEmpty={isEmpty}
         canEdit={canEdit}
+        isAdmin={isAdmin}
         onEdit={openEdit}
+        onUnlock={async (u) => {
+          try {
+            await usersService.unlock(u._id);
+            setToast({ open: true, tone: 'success', message: `${u.name || 'User'} unlocked` });
+            refreshAll();
+          } catch (e) {
+            setToast({
+              open: true,
+              tone: 'error',
+              message: e?.response?.data?.message || 'Unlock failed',
+            });
+          }
+        }}
+        onViewHistory={(u) => setHistoryModal({ open: true, user: u })}
       />
 
       {!isLoading && pagination.total > 0 && (
@@ -206,6 +226,12 @@ export default function UserManagementPage() {
           clearSaveError();
         }}
         onSubmit={handleSubmit}
+      />
+
+      <LoginHistoryModal
+        open={historyModal.open}
+        user={historyModal.user}
+        onClose={() => setHistoryModal({ open: false, user: null })}
       />
     </div>
   );

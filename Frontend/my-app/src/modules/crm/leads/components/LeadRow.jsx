@@ -1,6 +1,7 @@
 import { cloneElement } from 'react';
 import { LeadStageBadge } from './LeadStageBadge';
 import { LeadStatusBadge } from './LeadStatusBadge';
+import { TemperatureChip } from '../../enquiries/components/TemperatureChip';
 import { formatDate, formatINRCompact, initialsOf, shortCode } from '../utils/leadFormatters';
 import { LEAD_COLUMNS } from '../constants/leadColumns';
 
@@ -88,11 +89,18 @@ export function LeadRow({ lead, stages, visibleKeys, onView, onComment }) {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-200 text-xs font-semibold text-slate-800">
                 {initialsOf(enquiry.clientName)}
               </span>
-              <span
-                className="block max-w-[160px] truncate text-[13px] font-medium text-slate-900 hover:text-brand-600"
-                title={enquiry.clientName}
-              >
-                {enquiry.clientName || '—'}
+              <span className="flex min-w-0 flex-col">
+                <span
+                  className="block max-w-[160px] truncate text-[13px] font-medium text-slate-900 hover:text-brand-600"
+                  title={enquiry.clientName}
+                >
+                  {enquiry.clientName || '—'}
+                </span>
+                {lead.isWalkIn && (
+                  <span className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                    <span aria-hidden="true">🚶</span> Walk-in
+                  </span>
+                )}
               </span>
             </button>
           </Cell>
@@ -135,6 +143,16 @@ export function LeadRow({ lead, stages, visibleKeys, onView, onComment }) {
         return (
           <Cell>
             <LeadStatusBadge status={lead.status} />
+          </Cell>
+        );
+      case 'temperature':
+        return (
+          <Cell>
+            {lead.temperature ? (
+              <TemperatureChip value={lead.temperature} />
+            ) : (
+              <span className="text-slate-300">—</span>
+            )}
           </Cell>
         );
       case 'action':

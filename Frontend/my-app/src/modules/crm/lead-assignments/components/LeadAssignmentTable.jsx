@@ -6,6 +6,7 @@ export function LeadAssignmentTable({
   leads,
   isLoading,
   isEmpty,
+  latestByLead = {},
   onAssign,
 }) {
   return (
@@ -65,6 +66,7 @@ export function LeadAssignmentTable({
                 <LeadAssignmentRow
                   key={lead._id}
                   lead={lead}
+                  latestAssignment={latestByLead[lead._id]}
                   onAssign={onAssign}
                 />
               ))}

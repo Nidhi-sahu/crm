@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rolesService } from '../services/rolesService';
 import { permissionsService } from '../services/permissionsService';
+import { leadsService } from '../../leads/services/leadsService';
 import {
   CATEGORIES,
   MODULE_LABEL,
@@ -46,6 +47,8 @@ export default function RolesPage() {
   const [error, setError] = useState(null);
 
   const [draftPerms, setDraftPerms] = useState(new Set());
+  const [draftCommentMaxStage, setDraftCommentMaxStage] = useState(''); // '' = unlimited
+  const [stages, setStages] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [toast, setToast] = useState(null);
@@ -54,11 +57,16 @@ export default function RolesPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    Promise.all([rolesService.list(), permissionsService.list()])
-      .then(([roleItems, permItems]) => {
+    Promise.all([
+      rolesService.list(),
+      permissionsService.list(),
+      leadsService.listStages().catch(() => []),
+    ])
+      .then(([roleItems, permItems, stageItems]) => {
         if (cancelled) return;
         setRoles(roleItems);
         setPermCatalog(permItems);
+        setStages(stageItems || []);
         if (roleItems.length > 0) setSelectedRoleId(roleItems[0]._id);
       })
       .catch(() => {
@@ -78,9 +86,15 @@ export default function RolesPage() {
   useEffect(() => {
     if (selectedRole) {
       setDraftPerms(new Set(selectedRole.permissions || []));
+      setDraftCommentMaxStage(
+        selectedRole.commentMaxStageOrder == null
+          ? ''
+          : String(selectedRole.commentMaxStageOrder),
+      );
       setSaveError(null);
     } else {
       setDraftPerms(new Set());
+      setDraftCommentMaxStage('');
     }
   }, [selectedRole]);
 
@@ -98,11 +112,17 @@ export default function RolesPage() {
     [selectedRole],
   );
 
+  const originalCommentMaxStage =
+    selectedRole?.commentMaxStageOrder == null
+      ? ''
+      : String(selectedRole.commentMaxStageOrder);
+
   const isDirty = useMemo(() => {
+    if (draftCommentMaxStage !== originalCommentMaxStage) return true;
     if (draftPerms.size !== originalSet.size) return true;
     for (const p of draftPerms) if (!originalSet.has(p)) return true;
     return false;
-  }, [draftPerms, originalSet]);
+  }, [draftPerms, originalSet, draftCommentMaxStage, originalCommentMaxStage]);
 
   const togglePerm = (key) => {
     setDraftPerms((prev) => {
@@ -115,6 +135,7 @@ export default function RolesPage() {
 
   const resetDraft = () => {
     setDraftPerms(new Set(selectedRole?.permissions || []));
+    setDraftCommentMaxStage(originalCommentMaxStage);
     setSaveError(null);
   };
 
@@ -123,19 +144,29 @@ export default function RolesPage() {
     setSaving(true);
     setSaveError(null);
     try {
+      const nextCommentMaxStage =
+        draftCommentMaxStage === '' ? null : Number(draftCommentMaxStage);
       const updated = await rolesService.update(selectedRole._id, {
         permissions: Array.from(draftPerms),
+        commentMaxStageOrder: nextCommentMaxStage,
       });
       setRoles((prev) =>
         prev.map((r) =>
           r._id === selectedRole._id
-            ? { ...r, permissions: updated?.permissions || Array.from(draftPerms) }
+            ? {
+                ...r,
+                permissions: updated?.permissions || Array.from(draftPerms),
+                commentMaxStageOrder:
+                  updated?.commentMaxStageOrder !== undefined
+                    ? updated.commentMaxStageOrder
+                    : nextCommentMaxStage,
+              }
             : r,
         ),
       );
-      setToast({ tone: 'success', message: 'Permissions updated' });
+      setToast({ tone: 'success', message: 'Role updated' });
     } catch {
-      setSaveError('Failed to save permissions');
+      setSaveError('Failed to save role');
     } finally {
       setSaving(false);
     }
@@ -283,6 +314,31 @@ export default function RolesPage() {
                 </div>
 
                 {saveError && <p className="text-xs text-rose-600">{saveError}</p>}
+
+                {/* Comment-stage cap (admin-controlled) */}
+                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Max Comment Stage
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      Highest lead stage this role can comment on. Unlimited = no cap.
+                    </p>
+                  </div>
+                  <select
+                    value={draftCommentMaxStage}
+                    onChange={(e) => setDraftCommentMaxStage(e.target.value)}
+                    disabled={saving}
+                    className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  >
+                    <option value="">Unlimited</option>
+                    {stages.map((s) => (
+                      <option key={s._id} value={s.order}>
+                        {s.order}. {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 {/* Categories */}
                 {CATEGORIES.map((cat) => {

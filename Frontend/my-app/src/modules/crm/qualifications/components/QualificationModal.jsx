@@ -132,6 +132,7 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
   useEffect(() => () => clearSaveError(), [clearSaveError]);
 
   const [projectOptions, setProjectOptions] = useState([]);
+  const [projects, setProjects] = useState([]);
   useEffect(() => {
     if (!open) return undefined;
     let active = true;
@@ -139,6 +140,7 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
       .list()
       .then((list) => {
         if (!active) return;
+        setProjects(list);
         setProjectOptions(
           list.map((p) => ({
             value: p.name,
@@ -147,7 +149,10 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
         );
       })
       .catch(() => {
-        if (active) setProjectOptions([]);
+        if (active) {
+          setProjects([]);
+          setProjectOptions([]);
+        }
       });
     return () => {
       active = false;
@@ -316,7 +321,13 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
                   key={q.id}
                   className="rounded-lg border border-slate-200 bg-slate-50/60 p-3"
                 >
-                  <QuestionRenderer question={q} register={register} projectOptions={projectOptions} />
+                  <QuestionRenderer
+                    question={q}
+                    register={register}
+                    watch={watch}
+                    projectOptions={projectOptions}
+                    projects={projects}
+                  />
                 </div>
               ))}
             </div>

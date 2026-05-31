@@ -46,6 +46,13 @@ const assign = async (leadId, { assignedTo, reason }, actor) => {
     throw ApiError.badRequest('Lead is already assigned to this user');
   }
 
+  // Reason mandatory on reassignment (per #27).
+  if (currentAssigneeId && (!reason || reason.trim().length < 15)) {
+    throw ApiError.badRequest(
+      'Reason is required when reassigning a lead (min 15 characters)',
+    );
+  }
+
   const triggerType = currentAssigneeId ? ASSIGNMENT_TRIGGER.REASSIGN : ASSIGNMENT_TRIGGER.MANUAL;
 
   await leadRepo.setAssignment(leadId, { assignedTo, actor });

@@ -54,7 +54,14 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
       {error?.message && (
-        <Alert tone="error" title="Sign-in failed">
+        <Alert
+          tone="error"
+          title={
+            /locked|inactivity/i.test(error.message)
+              ? '🔒 Account locked'
+              : 'Sign-in failed'
+          }
+        >
           {error.message}
         </Alert>
       )}

@@ -101,7 +101,7 @@ const refresh = asyncHandler(async (req, res) => {
 
 const logout = asyncHandler(async (req, res) => {
   const refreshToken = req.signedCookies[COOKIE_NAME] || req.body.refreshToken;
-  await authService.logout({ refreshToken });
+  await authService.logout({ refreshToken, deviceInfo: getDeviceInfo(req) });
   res.clearCookie(COOKIE_NAME, cookieOptions);
   if (req.user) {
     auditLogService.log({

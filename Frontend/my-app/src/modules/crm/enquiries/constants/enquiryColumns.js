@@ -4,6 +4,8 @@ export const ENQUIRY_COLUMNS = [
   { key: 'companyName', label: 'Company Name', sortable: false, hideable: true },
   { key: 'clientPhone', label: 'Phone Number', sortable: false, hideable: true },
   { key: 'clientEmail', label: 'Email', sortable: false, hideable: true },
+  { key: 'city', label: 'City', sortable: false, hideable: true },
+  { key: 'occupation', label: 'Occupation', sortable: false, hideable: true },
   { key: 'status', label: 'Status', sortable: false, hideable: true },
   { key: 'createdBy', label: 'Created By', sortable: false, hideable: true },
   { key: 'followup', label: 'Followup Date', sortable: true, sortKey: 'nextFollowupAt', hideable: true },
@@ -13,4 +15,4 @@ export const ENQUIRY_COLUMNS = [
 ];
 
 export const DEFAULT_PAGE_SIZE = 10;
-export const ENQUIRY_COLUMN_STORAGE_KEY = 'langdi.enquiryColumns.v3';
+export const ENQUIRY_COLUMN_STORAGE_KEY = 'langdi.enquiryColumns.v4';

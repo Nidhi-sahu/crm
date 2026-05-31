@@ -88,4 +88,12 @@ export const usersService = {
     };
     return extractUser(unwrap(await usersAPI.update(id, payload)));
   },
+
+  async unlock(id) {
+    return extractUser(unwrap(await usersAPI.unlock(id)));
+  },
+
+  async loginHistory(id) {
+    return unwrap(await usersAPI.loginHistory(id));
+  },
 };

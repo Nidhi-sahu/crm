@@ -32,6 +32,8 @@ const sanitizeUser = (userDoc) => {
   return obj;
 };
 
+const INACTIVITY_LOCK_MS = 48 * 60 * 60 * 1000; // 48 hours
+
 const login = async ({ email, password, deviceInfo }) => {
   const user = await userRepo.findByEmail(email);
   if (!user) throw ApiError.unauthorized('Invalid credentials');
@@ -40,9 +42,28 @@ const login = async ({ email, password, deviceInfo }) => {
   const ok = await hashUtil.compare(password, user.passwordHash);
   if (!ok) throw ApiError.unauthorized('Invalid credentials');
 
+  // Already locked → block until admin unlocks.
+  if (user.isLocked) {
+    throw ApiError.forbidden(
+      `Account locked${user.lockReason ? ` — ${user.lockReason}` : ''}. Please contact your administrator.`,
+    );
+  }
+
+  // 48-hour inactivity passive check (exempt users who never logged in).
+  if (user.lastLoginAt) {
+    const gap = Date.now() - new Date(user.lastLoginAt).getTime();
+    if (gap > INACTIVITY_LOCK_MS) {
+      await userRepo.lockUser(user._id, 'Inactive for more than 48 hours');
+      throw ApiError.forbidden(
+        'Account locked due to 48+ hours of inactivity. Please contact your administrator.',
+      );
+    }
+  }
+
   const tokens = await buildTokenPair(user, deviceInfo);
   await userRepo.pushLoginHistory(user._id, {
     at: new Date(),
+    event: 'login',
     ip: deviceInfo && deviceInfo.ip,
     userAgent: deviceInfo && deviceInfo.userAgent,
   });
@@ -75,9 +96,25 @@ const loginWithGoogle = async ({ credential, deviceInfo }) => {
   }
   if (user.status !== 'active') throw ApiError.forbidden('Account inactive');
 
+  if (user.isLocked) {
+    throw ApiError.forbidden(
+      `Account locked${user.lockReason ? ` — ${user.lockReason}` : ''}. Please contact your administrator.`,
+    );
+  }
+  if (user.lastLoginAt) {
+    const gap = Date.now() - new Date(user.lastLoginAt).getTime();
+    if (gap > INACTIVITY_LOCK_MS) {
+      await userRepo.lockUser(user._id, 'Inactive for more than 48 hours');
+      throw ApiError.forbidden(
+        'Account locked due to 48+ hours of inactivity. Please contact your administrator.',
+      );
+    }
+  }
+
   const tokens = await buildTokenPair(user, deviceInfo);
   await userRepo.pushLoginHistory(user._id, {
     at: new Date(),
+    event: 'login',
     ip: deviceInfo && deviceInfo.ip,
     userAgent: deviceInfo && deviceInfo.userAgent,
   });
@@ -106,11 +143,20 @@ const refresh = async ({ refreshToken, deviceInfo }) => {
   return buildTokenPair(user, deviceInfo);
 };
 
-const logout = async ({ refreshToken }) => {
+const logout = async ({ refreshToken, deviceInfo }) => {
   if (!refreshToken) return;
   try {
     const payload = verifyRefresh(refreshToken);
     await refreshTokenRepo.revokeByJti(payload.jti);
+    // Record logout time in login history
+    if (payload.sub) {
+      await userRepo.pushLoginHistory(payload.sub, {
+        at: new Date(),
+        event: 'logout',
+        ip: deviceInfo && deviceInfo.ip,
+        userAgent: deviceInfo && deviceInfo.userAgent,
+      });
+    }
   } catch {
     /* idempotent — invalid token = already effectively logged out */
   }

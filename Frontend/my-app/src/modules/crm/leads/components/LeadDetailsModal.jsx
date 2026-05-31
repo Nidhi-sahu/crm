@@ -7,13 +7,21 @@ import { Textarea } from '../../../../shared/components/Textarea';
 import { Alert } from '../../../../shared/components/Alert';
 import { Skeleton } from '../../dashboard/components/Skeleton';
 import { LeadStatusBadge } from './LeadStatusBadge';
+import { TemperatureChip } from '../../enquiries/components/TemperatureChip';
+import { TEMPERATURE_OPTIONS } from '../../enquiries/constants/enquiryTemperatures';
 import { LeadTimeline } from './LeadTimeline';
 import { DropLeadDialog } from './DropLeadDialog';
 import { StageProgress } from './StageProgress';
 import { StageMoveDialog } from './StageMoveDialog';
 import { VisitReportModal } from './VisitReportModal';
+import { MoveBackFromVisitModal } from './MoveBackFromVisitModal';
+import { PreviousLeadHistoryPanel } from './PreviousLeadHistoryPanel';
+import { AssignmentHistoryPanel } from './AssignmentHistoryPanel';
 import { formatDate, initialsOf, shortCode } from '../utils/leadFormatters';
+import { useAuth } from '../../auth/hooks/useAuth';
 import { leadsService } from '../services/leadsService';
+import { AutoAssignedBadge } from '../../lead-assignments/components/AutoAssignedBadge';
+import { leadAssignmentService } from '../../lead-assignments/services/leadAssignmentService';
 
 const SectionHeader = ({ children }) => (
   <h3 className="text-[11px] font-semibold uppercase tracking-wider text-brand-600">
@@ -85,6 +93,11 @@ export function LeadDetailsModal({
   const [progressError, setProgressError] = useState('');
   const [visitReportOpen, setVisitReportOpen] = useState(false);
   const [visitReports, setVisitReports] = useState([]);
+  const [latestAssignment, setLatestAssignment] = useState(null);
+  const [moveBackOpen, setMoveBackOpen] = useState(false);
+  const { user: currentUser } = useAuth();
+  const isAdmin =
+    (currentUser?.roleId?.name || currentUser?.role?.name) === 'Administrator';
 
   const loadVisitReports = (id) => {
     leadsService
@@ -116,6 +129,11 @@ export function LeadDetailsModal({
       onLoadHistory?.(lead._id);
       onLoadComments?.(lead._id);
       loadVisitReports(lead._id);
+      setLatestAssignment(null);
+      leadAssignmentService
+        .fetchAssignmentHistory({ leadId: lead._id, limit: 1 })
+        .then((items) => setLatestAssignment((items && items[0]) || null))
+        .catch(() => setLatestAssignment(null));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lead?._id]);
@@ -171,10 +189,11 @@ export function LeadDetailsModal({
   const hasMovedOnce = !!lead.actualStageAt;
   const isVisitStage =
     (lead.currentStageId?.name || '').trim().toLowerCase() === 'visit confirmed';
+  const isVisitConfirmedStage = Number(lead.currentStageId?.order) === 4;
 
   const openStageChange = () => {
     if (isVisitStage) setVisitReportOpen(true);
-    else setStageDialog({ open: true, mode: 'move' });
+    else setStageDialog({ open: true, mode: 'complete' });
   };
 
   const handleVisitReportSubmit = async (reportData) => {
@@ -239,7 +258,19 @@ export function LeadDetailsModal({
   };
 
   const handleUndoStage = () => {
-    setStageDialog({ open: true, mode: 'undo' });
+    if (isVisitConfirmedStage && isAdmin) {
+      setMoveBackOpen(true);
+    } else {
+      setStageDialog({ open: true, mode: 'undo' });
+    }
+  };
+
+  const handleMoveBackConfirm = async (payload) => {
+    const updated = await leadsService.moveBackFromVisit(lead._id, payload);
+    if (updated) {
+      // optimistic — modal will close, parent reloads via onVisitChanged
+    }
+    if (typeof onVisitChanged === 'function') onVisitChanged();
   };
 
   const handleDrop = async (reason) => {
@@ -293,14 +324,19 @@ export function LeadDetailsModal({
                   Mark Won
                 </Button>
               )}
-              {canMoveStage && !isClosed && (
+              {canMoveStage && !isClosed && !isFinal && (
                 <Button
                   variant="primary"
                   onClick={openStageChange}
-                  disabled={saving}
+                  disabled={saving || (!isVisitStage && !nextStage)}
                   className="!gap-1.5 !rounded-md !px-3 !py-1.5 !text-xs"
+                  title={
+                    !isVisitStage && !nextStage
+                      ? 'No next stage configured'
+                      : undefined
+                  }
                 >
-                  {isVisitStage ? 'Complete Visit' : 'Change Stage'}
+                  {isVisitStage ? 'Complete Visit' : 'Complete Stage'}
                 </Button>
               )}
             </div>
@@ -315,11 +351,72 @@ export function LeadDetailsModal({
           {/* Section 1 — Client Information */}
           <section className="space-y-2">
             <SectionHeader>Client Information</SectionHeader>
+            {lead.isWalkIn && (
+              <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                <span aria-hidden="true">🚶</span>
+                Walk-in Client · Direct visit, no prior enquiry
+              </div>
+            )}
+            {lead.linkedPreviousLeadId && (
+              <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800">
+                <p className="flex items-center gap-1.5 font-semibold">
+                  <span aria-hidden="true">🔗</span>
+                  Previously associated with another sales person
+                </p>
+                <p className="mt-1">
+                  Original lead by{' '}
+                  <strong>
+                    {lead.linkedPreviousLeadId.assignedTo?.name ||
+                      lead.linkedPreviousLeadId.createdBy?.name ||
+                      'Unknown'}
+                  </strong>
+                  {lead.linkedPreviousLeadId.createdAt && (
+                    <>
+                      {' '}· created{' '}
+                      {new Date(lead.linkedPreviousLeadId.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </>
+                  )}{' '}· <span className="italic">idle, no activity</span>
+                </p>
+              </div>
+            )}
+            {lead.linkedClosedLeadId && (
+              <PreviousLeadHistoryPanel prevLead={lead.linkedClosedLeadId} />
+            )}
+            {!lead.linkedPreviousLeadId && lead.linkedPreviousEnquiryId && (
+              <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800">
+                <p className="flex items-center gap-1.5 font-semibold">
+                  <span aria-hidden="true">🔗</span>
+                  Previously added by another user
+                </p>
+                <p className="mt-1">
+                  Earlier enquiry by{' '}
+                  <strong>
+                    {lead.linkedPreviousEnquiryId.createdBy?.name || 'Unknown'}
+                  </strong>
+                  {lead.linkedPreviousEnquiryId.createdAt && (
+                    <>
+                      {' '}· created{' '}
+                      {new Date(lead.linkedPreviousEnquiryId.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </>
+                  )}{' '}· <span className="italic">never qualified, no activity</span>
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
               <InfoRow label="Client Name" value={enquiry.clientName} />
               <InfoRow label="Company" value={enquiry.companyName} />
               <InfoRow label="Phone" value={enquiry.clientPhone} />
               <InfoRow label="Email" value={enquiry.clientEmail} />
+              <InfoRow label="City" value={enquiry.city} />
+              <InfoRow label="Occupation" value={enquiry.occupation} />
             </div>
           </section>
 
@@ -335,6 +432,38 @@ export function LeadDetailsModal({
                 </p>
                 <div className="pt-0.5"><LeadStatusBadge status={lead.status} /></div>
               </div>
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                  Lead Temperature
+                </p>
+                {canEdit && !isClosed ? (
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <TemperatureChip value={lead.temperature || 'cold'} />
+                    <select
+                      value={lead.temperature || 'cold'}
+                      onChange={async (e) => {
+                        try {
+                          await onSaveProgress(lead._id, { temperature: e.target.value });
+                        } catch (_) {
+                          // saveError handled in state
+                        }
+                      }}
+                      disabled={saving}
+                      className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-700 focus:border-brand-300 focus:outline-none focus:ring-1 focus:ring-brand-200"
+                    >
+                      {TEMPERATURE_OPTIONS.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="pt-0.5">
+                    <TemperatureChip value={lead.temperature || 'cold'} />
+                  </div>
+                )}
+              </div>
               <InfoRow
                 label="Assigned To"
                 value={
@@ -348,6 +477,22 @@ export function LeadDetailsModal({
                   ) : null
                 }
               />
+              {lead.assignedTo && (
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+                    Assignment Method
+                  </p>
+                  <div className="pt-0.5">
+                    {latestAssignment ? (
+                      <AutoAssignedBadge assignment={latestAssignment} />
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                        Assigned
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="sm:col-span-2 space-y-0.5">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
@@ -505,10 +650,23 @@ export function LeadDetailsModal({
               stages={stages}
               currentStage={lead.currentStageId}
               nextStage={nextStage}
-              canUndo={canMoveStage && hasMovedOnce && !isClosed}
+              canUndo={
+                canMoveStage &&
+                hasMovedOnce &&
+                !isClosed &&
+                (!isVisitConfirmedStage || isAdmin)
+              }
               onUndo={handleUndoStage}
               undoing={saving}
             />
+          </section>
+
+          <div className="border-t border-slate-100" />
+
+          {/* Section — Assignment History (#31) */}
+          <section className="space-y-2">
+            <SectionHeader>Assignment History</SectionHeader>
+            <AssignmentHistoryPanel leadId={lead._id} />
           </section>
 
           <div className="border-t border-slate-100" />
@@ -539,6 +697,23 @@ export function LeadDetailsModal({
                         <InfoRow label="Visitor" value={r.visitorName} />
                         <InfoRow label="Project Visited" value={r.projectVisited} />
                         <InfoRow label="Property Interested" value={r.propertyInterested} />
+                        {(r.firstPreference || r.secondPreference) && (
+                          <div className="sm:col-span-2 rounded-lg border border-emerald-200 bg-emerald-50/50 p-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+                              Property Preferences
+                            </p>
+                            <div className="mt-1 grid grid-cols-1 gap-1.5 text-[12px] text-emerald-900 sm:grid-cols-2">
+                              <div>
+                                <span className="text-emerald-600">1st Preference: </span>
+                                <strong>{r.firstPreference || '—'}</strong>
+                              </div>
+                              <div>
+                                <span className="text-emerald-600">2nd Preference: </span>
+                                <strong>{r.secondPreference || '—'}</strong>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         <InfoRow label="Budget" value={r.customerBudget} />
                         <InfoRow label="Profession" value={r.customerProfession} />
                         <InfoRow label="Source" value={r.sourceOfCustomer} />
@@ -601,6 +776,7 @@ export function LeadDetailsModal({
         mode={stageDialog.mode}
         lead={lead}
         stages={stages}
+        nextStage={nextStage}
         saving={saving}
         onClose={() => setStageDialog({ open: false, mode: 'move' })}
         onConfirmMove={handleConfirmMove}
@@ -616,6 +792,14 @@ export function LeadDetailsModal({
         saveError={saveError}
         onClose={() => setVisitReportOpen(false)}
         onSubmit={handleVisitReportSubmit}
+      />
+
+      <MoveBackFromVisitModal
+        open={moveBackOpen}
+        lead={lead}
+        stages={stages}
+        onClose={() => setMoveBackOpen(false)}
+        onConfirm={handleMoveBackConfirm}
       />
     </>
   );

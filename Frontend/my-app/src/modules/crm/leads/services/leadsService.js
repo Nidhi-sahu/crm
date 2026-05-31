@@ -52,6 +52,11 @@ export const leadsService = {
     return Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
   },
 
+  async getAssignmentHistory(id) {
+    const data = unwrap(await leadsAPI.assignmentHistory(id));
+    return Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+  },
+
   async update(id, payload) {
     return extractLead(unwrap(await leadsAPI.update(id, payload)));
   },
@@ -62,6 +67,27 @@ export const leadsService = {
 
   async undoStage(id) {
     return extractLead(unwrap(await leadsAPI.undoStage(id)));
+  },
+
+  async moveBackFromVisit(id, payload) {
+    return extractLead(unwrap(await leadsAPI.moveBackFromVisit(id, payload)));
+  },
+
+  async listTeleSalesUsers() {
+    const rolesData = unwrap(await rolesAPI.list());
+    const roles = Array.isArray(rolesData?.items)
+      ? rolesData.items
+      : Array.isArray(rolesData)
+      ? rolesData
+      : [];
+    const tsRole = roles.find((r) => r.name === 'Tele Sales');
+    if (!tsRole) return [];
+    const usersData = unwrap(await usersAPI.list({ roleId: tsRole._id, limit: 100 }));
+    return Array.isArray(usersData?.items)
+      ? usersData.items
+      : Array.isArray(usersData)
+      ? usersData
+      : [];
   },
 
   async markWon(id) {
@@ -102,6 +128,11 @@ export const leadsService = {
     const data = unwrap(await leadStagesAPI.list());
     const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
     return items.sort((a, b) => (a.order || 0) - (b.order || 0));
+  },
+
+  async createWalkIn(payload) {
+    const data = unwrap(await leadsAPI.createWalkIn(payload));
+    return extractLead(data);
   },
 
   async createVisitReport(leadId, payload) {
