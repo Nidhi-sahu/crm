@@ -11,6 +11,7 @@ import ConfigurationPage from '../modules/crm/configuration/pages/ConfigurationP
 import ReportsPage from '../modules/crm/reports/pages/ReportsPage';
 import RolesPage from '../modules/crm/roles/pages/RolesPage';
 import ProjectsPage from '../modules/crm/projects/pages/ProjectsPage';
+import BrokersPage from '../modules/crm/brokers/pages/BrokersPage';
 import FollowupsPage from '../modules/crm/followups/pages/FollowupsPage';
 import { AppLayout } from '../layouts/AppLayout';
 import { ProtectedRoute } from '../shared/guards/ProtectedRoute';
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
           { path: 'leads', element: <LeadsPage /> },
           { path: 'lead-assignments', element: <LeadAssignmentPage /> },
           { path: 'projects', element: <ProjectsPage /> },
+          { path: 'brokers', element: <BrokersPage /> },
           { path: 'followups', element: <FollowupsPage /> },
           { path: 'reminders', element: <Navigate to="/app/followups" replace /> },
           { path: 'reports', element: <ReportsPage /> },

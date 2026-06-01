@@ -22,6 +22,7 @@ const rolePermissions = {
     'comment:create', 'comment:read',
     'reminder:create', 'reminder:read', 'reminder:update', 'reminder:complete',
     'report:view', 'report:export',
+    'project:read',
     'notification:read', 'notification:update',
   ],
   [ROLES.SALES_PERSON]: [
@@ -32,6 +33,7 @@ const rolePermissions = {
     'leadStage:read',
     'comment:create', 'comment:read',
     'reminder:create', 'reminder:read', 'reminder:update', 'reminder:complete',
+    'project:read',
     'notification:read', 'notification:update',
   ],
   [ROLES.LEAD_GENERATOR]: [
@@ -42,6 +44,7 @@ const rolePermissions = {
     'leadStage:read',
     'comment:create', 'comment:read',
     'reminder:create', 'reminder:read',
+    'project:read',
     'notification:read', 'notification:update',
   ],
   [ROLES.TELE_SALES]: [
@@ -52,6 +55,7 @@ const rolePermissions = {
     'leadStage:read',
     'comment:create', 'comment:read',
     'reminder:create', 'reminder:read', 'reminder:update', 'reminder:complete',
+    'project:read',
     'notification:read', 'notification:update',
   ],
   [ROLES.VISIT_TEAM]: [
@@ -62,7 +66,17 @@ const rolePermissions = {
     'leadStage:read',
     'comment:read',
     'reminder:read',
+    'project:read',
     'notification:read', 'notification:update',
+  ],
+  // Broker role: strictly view-only — sees only leads they referred.
+  [ROLES.BROKER]: [
+    'dashboard:view',
+    'enquiry:read',
+    'lead:read',
+    'leadStage:read',
+    'comment:read',
+    'notification:read',
   ],
 };
 
@@ -74,6 +88,7 @@ const roleCommentMaxStageOrder = {
   [ROLES.LEAD_GENERATOR]: null,
   [ROLES.TELE_SALES]: null,
   [ROLES.VISIT_TEAM]: null,
+  [ROLES.BROKER]: null,
 };
 
 const STAGES_SEED = [

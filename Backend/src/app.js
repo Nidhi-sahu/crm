@@ -30,7 +30,17 @@ app.use(cookieParser(config.cookie.secret));
 app.use(requestLogger);
 app.use(rateLimit(rateLimitOptions));
 
-app.use('/uploads', express.static(UPLOAD_ROOT));
+// Serve uploads with cross-origin headers so frontend can fetch/preview/download
+// from a different origin (Vite dev server on :5173).
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+  },
+  express.static(UPLOAD_ROOT),
+);
 
 app.use(config.apiPrefix, apiRouter);
 

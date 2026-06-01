@@ -46,6 +46,11 @@ const userSchema = new mongoose.Schema(
     lastLoginAt: { type: Date, default: null },
     loginHistory: { type: [loginHistorySchema], default: [] },
 
+    // Broker-only fields: which sales/visit user manages this broker.
+    // Used to filter Brokers list visibility (only managers see their brokers).
+    managedBySalesId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+    managedByVisitId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+
     // 48-hour inactivity lock — admin must unlock before the user can log in again.
     isLocked: { type: Boolean, default: false, index: true },
     lockReason: { type: String, default: '' },

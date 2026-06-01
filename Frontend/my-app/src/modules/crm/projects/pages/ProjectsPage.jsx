@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { ROLES } from '../../auth/constants/roles';
+import { PERMISSIONS } from '../../auth/constants/permissions';
 import { projectsService } from '../services/projectsService';
 import { ProjectFormModal } from '../components/ProjectFormModal';
 import { Button } from '../../../../shared/components/Button';
@@ -16,9 +16,10 @@ const STATUS_TONE = {
 };
 
 export default function ProjectsPage() {
-  const { user } = useAuth();
-  const roleName = user?.role?.name || user?.roleName || user?.roleId?.name;
-  const isAdmin = roleName === ROLES.ADMIN;
+  const { can } = useAuth();
+  const canCreate = can(PERMISSIONS.project.create);
+  const canUpdate = can(PERMISSIONS.project.update);
+  const showActions = canCreate || canUpdate;
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +79,7 @@ export default function ProjectsPage() {
             Company projects — visible to everyone. Used as options in the enquiry “Preferred Location”.
           </p>
         </div>
-        {isAdmin && (
+        {canCreate && (
           <Button
             variant="primary"
             onClick={() => setModal({ open: true, project: null })}
@@ -100,13 +101,13 @@ export default function ProjectsPage() {
                 <th className="px-4 py-3">Location</th>
                 <th className="px-4 py-3">Property Type</th>
                 <th className="px-4 py-3">Status</th>
-                {isAdmin && <th className="px-4 py-3 text-right">Action</th>}
+                {showActions && <th className="px-4 py-3 text-right">Action</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={isAdmin ? 5 : 4} className="px-4 py-10 text-center">
+                  <td colSpan={showActions ? 5 : 4} className="px-4 py-10 text-center">
                     <span className="inline-flex items-center gap-2 text-sm text-slate-500">
                       <Spinner /> Loading projects…
                     </span>
@@ -116,10 +117,10 @@ export default function ProjectsPage() {
 
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 5 : 4} className="px-4 py-10 text-center">
+                  <td colSpan={showActions ? 5 : 4} className="px-4 py-10 text-center">
                     <p className="text-sm font-medium text-slate-700">No projects yet</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      {isAdmin ? 'Click “Add Project” to create one.' : 'Ask an admin to add projects.'}
+                      {canCreate ? 'Click “Add Project” to create one.' : 'Ask an admin to add projects.'}
                     </p>
                   </td>
                 </tr>
@@ -136,15 +137,17 @@ export default function ProjectsPage() {
                         {p.status}
                       </span>
                     </td>
-                    {isAdmin && (
+                    {showActions && (
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setModal({ open: true, project: p })}
-                          className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
-                        >
-                          Edit
-                        </button>
+                        {canUpdate && (
+                          <button
+                            type="button"
+                            onClick={() => setModal({ open: true, project: p })}
+                            className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                          >
+                            Edit
+                          </button>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -154,7 +157,7 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {isAdmin && (
+      {(canCreate || canUpdate) && (
         <ProjectFormModal
           open={modal.open}
           project={modal.project}

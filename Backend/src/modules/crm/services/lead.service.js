@@ -321,6 +321,12 @@ const list = async (query, actor) => {
     filter.visitAssignedTo = actor._id;
   }
 
+  // Brokers see ONLY leads referred via them (enquiry.brokerId = broker._id).
+  if (actorRoleName === ROLES.BROKER) {
+    const brokerEnqIds = await enquiryRepo.findIdsByMatch({ brokerId: actor._id });
+    filter.enquiryId = { $in: brokerEnqIds };
+  }
+
   if (search) {
     const regex = { $regex: search, $options: 'i' };
     const enquiryIds = await enquiryRepo.searchIds(search);

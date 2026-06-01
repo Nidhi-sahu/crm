@@ -43,4 +43,10 @@ export const PERMISSIONS = {
   report: { view: 'report:view' },
   configuration: { read: 'configuration:read', update: 'configuration:update' },
   auditLog: { read: 'auditLog:read' },
+  project: {
+    read: 'project:read',
+    create: 'project:create',
+    update: 'project:update',
+    delete: 'project:delete',
+  },
 };

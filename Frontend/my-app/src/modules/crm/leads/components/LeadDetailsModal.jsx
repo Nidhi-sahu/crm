@@ -723,13 +723,59 @@ export function LeadDetailsModal({
                         </div>
                       </div>
                       {r.photoUrl && (
-                        <a href={r.photoUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block">
-                          <img
-                            src={r.photoUrl}
-                            alt="Visit"
-                            className="h-24 w-24 rounded-lg border border-slate-200 object-cover"
-                          />
-                        </a>
+                        <div className="mt-3">
+                          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                            Visit Photo
+                          </p>
+                          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                            <a href={r.photoUrl} target="_blank" rel="noreferrer" className="block">
+                              <img
+                                src={r.photoUrl}
+                                alt="Visit"
+                                className="max-h-72 w-full object-contain"
+                              />
+                            </a>
+                            <div className="flex items-center justify-end gap-2 border-t border-slate-200 bg-white px-2 py-1.5">
+                              <a
+                                href={r.photoUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <path d="M15 3h6v6M14 10l7-7M5 21h14a2 2 0 0 0 2-2v-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                Open
+                              </a>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const resp = await fetch(r.photoUrl);
+                                    const blob = await resp.blob();
+                                    const blobUrl = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = blobUrl;
+                                    const ext = (r.photoUrl.split('.').pop() || 'jpg').split('?')[0];
+                                    a.download = `visit-${r._id || 'photo'}.${ext}`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    URL.revokeObjectURL(blobUrl);
+                                  } catch (_) {
+                                    window.open(r.photoUrl, '_blank');
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 rounded-md bg-brand-500 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-brand-600"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <path d="M12 4v12m0 0-4-4m4 4 4-4M4 20h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                Download
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}

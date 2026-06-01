@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../modules/crm/auth/hooks/useAuth';
 import { CRM_GROUP, ICON_PATHS } from './menuConfig';
+import { GlobalSearch } from './GlobalSearch';
 
 const NavIcon = ({ name, size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -31,18 +32,6 @@ const SearchIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" />
     <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-  </svg>
-);
-
-const BellIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path
-      d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2H4.5L6 16Zm4 4a2 2 0 0 0 4 0"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
   </svg>
 );
 
@@ -137,7 +126,7 @@ function ProfileDropdown({ user, onLogout }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const roleName = user?.role?.name || user?.roleName || 'Member';
+  const roleName = user?.roleId?.name || user?.role?.name || user?.roleName || 'Member';
   const displayName = user?.name || user?.email || 'User';
   const initials = displayName
     .split(/[\s@]+/)
@@ -221,9 +210,12 @@ export function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [groupExpanded, setGroupExpanded] = useState(false);
 
-  const visibleChildren = CRM_GROUP.children.filter(
-    (item) => !item.requires || can(item.requires),
-  );
+  const userRoleName = user?.roleId?.name || user?.role?.name || user?.roleName || '';
+  const visibleChildren = CRM_GROUP.children.filter((item) => {
+    if (item.requires && !can(item.requires)) return false;
+    if (item.roles && !item.roles.includes(userRoleName)) return false;
+    return true;
+  });
 
   const handleLogout = async () => {
     await logout();
@@ -245,7 +237,7 @@ export function AppLayout() {
         <div className="mt-auto rounded-xl bg-brand-100 p-3 text-xs text-slate-700">
           Signed in as{' '}
           <span className="font-semibold text-slate-900">
-            {user?.role?.name || user?.roleName || 'Member'}
+            {user?.roleId?.name || user?.role?.name || user?.roleName || 'Member'}
           </span>
         </div>
       </aside>
@@ -295,21 +287,13 @@ export function AppLayout() {
 
             {/* search */}
             <div className="hidden flex-1 sm:flex">
-              <label className="relative flex w-full max-w-md items-center">
-                <span className="pointer-events-none absolute left-3 text-slate-400">
-                  <SearchIcon />
-                </span>
-                <input
-                  type="search"
-                  placeholder="Search leads, enquiries, users…"
-                  className="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-200"
-                />
-              </label>
+              <GlobalSearch />
             </div>
             <div className="flex flex-1 sm:hidden">
               <button
                 type="button"
-                aria-label="Search"
+                aria-label="Search enquiries"
+                onClick={() => navigate('/app/enquiries')}
                 className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100"
               >
                 <SearchIcon />
@@ -317,14 +301,6 @@ export function AppLayout() {
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2">
-              <button
-                type="button"
-                aria-label="Notifications"
-                className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100"
-              >
-                <BellIcon />
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white" />
-              </button>
               <ProfileDropdown user={user} onLogout={handleLogout} />
             </div>
           </div>

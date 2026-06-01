@@ -5,4 +5,5 @@ module.exports = {
   LEAD_GENERATOR: 'Lead Generator',
   TELE_SALES: 'Tele Sales',
   VISIT_TEAM: 'Visit Team',
+  BROKER: 'Broker',
 };

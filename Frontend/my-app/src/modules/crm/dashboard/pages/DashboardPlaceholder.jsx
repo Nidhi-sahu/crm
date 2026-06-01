@@ -2,7 +2,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 
 export default function DashboardPlaceholder({ title = 'Dashboard' }) {
   const { user } = useAuth();
-  const roleName = user?.role?.name || user?.roleName || 'Member';
+  const roleName = user?.roleId?.name || user?.role?.name || user?.roleName || 'Member';
 
   return (
     <div className="mx-auto max-w-5xl">

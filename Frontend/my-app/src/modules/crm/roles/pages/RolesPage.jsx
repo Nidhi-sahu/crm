@@ -340,6 +340,7 @@ export default function RolesPage() {
                   </select>
                 </div>
 
+
                 {/* Categories */}
                 {CATEGORIES.map((cat) => {
                   const modules = cat.modules.filter((m) => permsByModule[m]);

@@ -15,6 +15,7 @@ export const CATEGORIES = [
       'leadStage',
       'comment',
       'reminder',
+      'project',
     ],
   },
   {
@@ -45,6 +46,7 @@ export const MODULE_LABEL = {
   auditLog: 'Audit Logs',
   report: 'Reports',
   notification: 'Notifications',
+  project: 'Projects',
 };
 
 export const ACTION_LABEL = {

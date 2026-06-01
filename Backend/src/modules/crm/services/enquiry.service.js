@@ -62,7 +62,9 @@ const create = async (data, actor) => {
   return obj;
 };
 
-const list = async (query) => {
+const ROLES = require('../../../constants/roles');
+
+const list = async (query, actor) => {
   const {
     page = 1,
     limit = 20,
@@ -82,6 +84,12 @@ const list = async (query) => {
   if (source) filter.source = source;
   if (temperature) filter.temperature = temperature;
   if (createdBy) filter.createdBy = createdBy;
+
+  // Brokers see ONLY enquiries they referred.
+  const actorRoleName = actor && actor.roleId && actor.roleId.name;
+  if (actorRoleName === ROLES.BROKER) {
+    filter.brokerId = actor._id;
+  }
   if (query.assignedQualificationUser) {
     filter.assignedQualificationUser = query.assignedQualificationUser;
   }

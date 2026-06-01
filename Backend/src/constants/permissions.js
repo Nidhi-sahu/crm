@@ -14,6 +14,7 @@ const MODULES = {
   NOTIFICATION: 'notification',
   CONFIGURATION: 'configuration',
   AUDIT_LOG: 'auditLog',
+  PROJECT: 'project',
 };
 
 const ACTIONS = {
@@ -89,6 +90,11 @@ const PERMISSION_CATALOG = [
   entry(MODULES.CONFIGURATION, ACTIONS.UPDATE, 'Update configurations'),
 
   entry(MODULES.AUDIT_LOG, ACTIONS.READ, 'Read audit logs'),
+
+  entry(MODULES.PROJECT, ACTIONS.CREATE, 'Create project'),
+  entry(MODULES.PROJECT, ACTIONS.READ, 'Read projects'),
+  entry(MODULES.PROJECT, ACTIONS.UPDATE, 'Update project'),
+  entry(MODULES.PROJECT, ACTIONS.DELETE, 'Delete project'),
 ];
 
 module.exports = { MODULES, ACTIONS, PERMISSION_CATALOG };

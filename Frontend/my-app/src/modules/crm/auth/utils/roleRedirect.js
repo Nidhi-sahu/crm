@@ -9,6 +9,6 @@ const ROLE_LANDING = {
 
 export const resolveRoleLanding = (user) => {
   if (!user) return '/login';
-  const roleName = user.role?.name || user.roleName;
+  const roleName = user.roleId?.name || user.role?.name || user.roleName;
   return ROLE_LANDING[roleName] || '/app/dashboard';
 };

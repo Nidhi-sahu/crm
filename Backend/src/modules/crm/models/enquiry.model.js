@@ -16,6 +16,8 @@ const enquirySchema = new mongoose.Schema(
 
     source: { type: String, enum: SOURCE_VALUES, required: true, index: true },
     brokerName: { type: String, trim: true, default: '' },
+    // Link to broker user (when broker is registered in system).
+    brokerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
 
     propertyType: { type: String, trim: true, default: '' },
     project: { type: String, trim: true, default: '' },

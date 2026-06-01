@@ -7,6 +7,7 @@ import { Alert } from '../../../../shared/components/Alert';
 import { ENQUIRY_SOURCES } from '../constants/enquirySources';
 import { enquiryService } from '../services/enquiryService';
 import { leadsService } from '../../leads/services/leadsService';
+import { brokersService } from '../../brokers/services/brokersService';
 import {
   enquiryRules,
   defaultEnquiryValues,
@@ -67,6 +68,14 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
   const phoneValue = watch('clientPhone');
   const sourceValue = watch('source');
   const isWalkIn = sourceValue === 'walkIn';
+  const isBrokerSource = sourceValue === 'broker';
+
+  // Registered brokers — shown as type-ahead suggestions in the Broker Name field.
+  const [brokers, setBrokers] = useState([]);
+  useEffect(() => {
+    if (!isBrokerSource) return;
+    brokersService.list().then(setBrokers).catch(() => setBrokers([]));
+  }, [isBrokerSource]);
 
   const setWalk = (key) => (e) =>
     setWalkIn((w) => ({ ...w, [key]: e.target.value }));
@@ -250,15 +259,24 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
           />
         </div>
         {sourceValue === 'broker' && (
-          <Input
-            label="Broker Name *"
-            placeholder="Enter the broker's name"
-            error={errors.brokerName?.message}
-            {...register('brokerName', {
-              validate: (v) =>
-                sourceValue !== 'broker' || (v && v.trim().length > 0) || "Broker's name is required",
-            })}
-          />
+          <>
+            <Input
+              label="Broker Name *"
+              placeholder="Select a broker or type a name"
+              list="broker-suggestions"
+              autoComplete="off"
+              error={errors.brokerName?.message}
+              {...register('brokerName', {
+                validate: (v) =>
+                  sourceValue !== 'broker' || (v && v.trim().length > 0) || "Broker's name is required",
+              })}
+            />
+            <datalist id="broker-suggestions">
+              {brokers.map((b) => (
+                <option key={b._id} value={b.name} />
+              ))}
+            </datalist>
+          </>
         )}
         <Textarea
           label="Remark"
