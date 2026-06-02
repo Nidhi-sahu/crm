@@ -129,6 +129,19 @@ const move = async (leadId, toStageId, { comment = '', plannedAt = null, attachm
     meta: { comment },
   });
 
+  // Auto-send the WhatsApp confirmation when the lead enters the WhatsApp stage.
+  // Non-blocking — never breaks the stage move.
+  if ((toStage.name || '').toLowerCase().includes('whatsapp')) {
+    try {
+      // Lazy require avoids any load-order coupling with the WhatsApp service.
+      // eslint-disable-next-line global-require
+      const whatsappService = require('./whatsapp.service');
+      await whatsappService.autoSendConfirmation(lead._id, user);
+    } catch (_) {
+      /* already non-throwing inside; ignore */
+    }
+  }
+
   return leadRepo.findById(lead._id);
 };
 

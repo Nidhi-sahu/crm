@@ -168,7 +168,7 @@ const remove = async (id) => {
   await enquiryRepo.remove(id);
 };
 
-const bulkImport = async ({ source, rows }, actor) => {
+const bulkImport = async ({ source, rows, brokerName }, actor) => {
   const skipped = [];
   const seen = new Set();
   const candidates = [];
@@ -207,6 +207,7 @@ const bulkImport = async ({ source, rows }, actor) => {
       toInsert.push({
         ...c,
         source,
+        brokerName: source === 'broker' ? (brokerName || '').trim() : '',
         status: ENQUIRY_STATUS.NEW,
         dateOfEnquiry: new Date(),
         createdBy: actor._id,

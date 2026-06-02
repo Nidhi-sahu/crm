@@ -2,6 +2,7 @@ const asyncHandler = require('../../../utils/asyncHandler');
 const ApiResponse = require('../../../utils/ApiResponse');
 const leadService = require('../services/lead.service');
 const visitReportService = require('../services/visitReport.service');
+const callLogService = require('../services/callLog.service');
 const { buildMeta } = require('../../../utils/pagination');
 
 const createFromEnquiry = asyncHandler(async (req, res) => {
@@ -79,6 +80,16 @@ const listVisitReports = asyncHandler(async (req, res) => {
   ApiResponse.ok(res, reports, 'Visit reports fetched');
 });
 
+const logCall = asyncHandler(async (req, res) => {
+  const call = await callLogService.create(req.params.id, req.body, req.user);
+  ApiResponse.created(res, { call }, 'Call logged');
+});
+
+const listCalls = asyncHandler(async (req, res) => {
+  const calls = await callLogService.listForLead(req.params.id);
+  ApiResponse.ok(res, calls, 'Call logs fetched');
+});
+
 module.exports = {
   createFromEnquiry,
   createWalkIn,
@@ -95,4 +106,6 @@ module.exports = {
   remove,
   createVisitReport,
   listVisitReports,
+  logCall,
+  listCalls,
 };

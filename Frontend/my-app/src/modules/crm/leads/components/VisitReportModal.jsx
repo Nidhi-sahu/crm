@@ -58,6 +58,9 @@ export function VisitReportModal({ open, lead, nextStage, saving, saveError, onC
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -65,6 +68,9 @@ export function VisitReportModal({ open, lead, nextStage, saving, saveError, onC
       setErrors({});
       setPhotoError('');
       setUploading(false);
+      setLocating(false);
+      setSubmitting(false);
+      setLocalError('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lead?._id]);
@@ -75,7 +81,35 @@ export function VisitReportModal({ open, lead, nextStage, saving, saveError, onC
     setErrors((er) => (er[key] ? { ...er, [key]: undefined } : er));
   };
 
-  const handleSubmit = () => {
+  // Capture the submitter's GPS position — mandatory for the location check.
+  const captureLocation = () =>
+    new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Location is not supported by this browser/device.'));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) =>
+          resolve({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          }),
+        (err) => {
+          if (err.code === 1) {
+            reject(new Error('Location permission denied. You must allow location access to submit a visit form.'));
+          } else if (err.code === 3) {
+            reject(new Error('Could not get your location in time. Move to an open area and try again.'));
+          } else {
+            reject(new Error('Could not determine your location. Please enable location and try again.'));
+          }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      );
+    });
+
+  const handleSubmit = async () => {
+    setLocalError('');
     const errs = {};
     Object.entries(REQUIRED_FIELDS).forEach(([key, label]) => {
       if (!String(form[key] || '').trim()) errs[key] = `${label} is required`;
@@ -84,7 +118,30 @@ export function VisitReportModal({ open, lead, nextStage, saving, saveError, onC
       setErrors(errs);
       return;
     }
-    onSubmit(form);
+
+    // 1) Mandatory location capture.
+    setLocating(true);
+    let geo;
+    try {
+      geo = await captureLocation();
+    } catch (e) {
+      setLocating(false);
+      setLocalError(e.message);
+      return;
+    }
+    setLocating(false);
+
+    // 2) Submit — backend verifies the position is within the site/office radius.
+    setSubmitting(true);
+    try {
+      await onSubmit({ ...form, ...geo });
+    } catch (e) {
+      setLocalError(
+        e?.response?.data?.message || e?.message || 'Failed to submit the visit form.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handlePhoto = async (e) => {
@@ -124,19 +181,27 @@ export function VisitReportModal({ open, lead, nextStage, saving, saveError, onC
           <Button
             variant="primary"
             onClick={handleSubmit}
-            loading={saving}
-            disabled={saving || uploading}
+            loading={saving || locating || submitting}
+            disabled={saving || uploading || locating || submitting}
             className="!gap-1.5 !rounded-md !px-4 !py-1.5 !text-xs"
           >
-            Save &amp; Move Stage
+            {locating ? 'Verifying location…' : submitting ? 'Saving…' : 'Save & Move Stage'}
           </Button>
         </div>
       }
     >
       <div className="space-y-5">
-        {saveError?.message && (
-          <Alert tone="error" title="Couldn't save">{saveError.message}</Alert>
+        {(localError || saveError?.message) && (
+          <Alert tone="error" title="Couldn't save">{localError || saveError.message}</Alert>
         )}
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+          <span aria-hidden="true">📍</span>
+          <span>
+            Location verification is required. On submit, your device location must be within
+            the allowed radius of the <strong>site</strong> or <strong>office</strong>. Please
+            allow location access.
+          </span>
+        </div>
 
         {/* Customer details */}
         <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-soft">

@@ -5,6 +5,7 @@ import { Input } from '../../../../shared/components/Input';
 import { Textarea } from '../../../../shared/components/Textarea';
 import { SelectInput } from '../../../../shared/components/SelectInput';
 import { Alert } from '../../../../shared/components/Alert';
+import { MapPicker } from '../../../../shared/components/MapPicker';
 
 const STATUS_OPTIONS = [
   { value: 'ongoing', label: 'Ongoing' },
@@ -18,12 +19,16 @@ const ACCOUNT_TYPE_OPTIONS = [
   { value: 'Current', label: 'Current' },
 ];
 
+const isNum = (n) => typeof n === 'number' && Number.isFinite(n);
+
 const buildInitial = (project) => ({
   name: project?.name || '',
   location: project?.location || '',
   propertyType: project?.propertyType || '',
   status: project?.status || 'ongoing',
   description: project?.description || '',
+  latitude: isNum(project?.latitude) ? project.latitude : null,
+  longitude: isNum(project?.longitude) ? project.longitude : null,
   bankDetails: {
     bankName: project?.bankDetails?.bankName || '',
     accountHolderName: project?.bankDetails?.accountHolderName || '',
@@ -49,6 +54,7 @@ export function ProjectFormModal({ open, project, saving, saveError, onClose, on
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const setBank = (key) => (e) =>
     setForm((f) => ({ ...f, bankDetails: { ...f.bankDetails, [key]: e.target.value } }));
+  const setLatLng = (lat, lng) => setForm((f) => ({ ...f, latitude: lat, longitude: lng }));
 
   const handleSubmit = () => {
     if (!form.name.trim()) {
@@ -93,6 +99,33 @@ export function ProjectFormModal({ open, project, saving, saveError, onClose, on
         </div>
         <SelectInput label="Status" options={STATUS_OPTIONS} value={form.status} onChange={set('status')} />
         <Textarea label="Description" rows={3} value={form.description} onChange={set('description')} />
+
+        <div className="pt-3">
+          <div className="mb-2 flex items-center gap-2 border-t border-slate-100 pt-3">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+              Site Location (Geo-fence)
+            </p>
+            <span className="text-[10px] text-slate-400">
+              (used to verify visit forms are filled at the site)
+            </span>
+          </div>
+          <MapPicker
+            lat={form.latitude}
+            lng={form.longitude}
+            onChange={setLatLng}
+            height={260}
+          />
+          {(isNum(form.latitude) || isNum(form.longitude)) && (
+            <button
+              type="button"
+              onClick={() => setLatLng(null, null)}
+              className="mt-1.5 text-[11px] font-medium text-rose-600 hover:underline"
+            >
+              Clear pin
+            </button>
+          )}
+        </div>
 
         <div className="pt-3">
           <div className="mb-2 flex items-center gap-2 border-t border-slate-100 pt-3">

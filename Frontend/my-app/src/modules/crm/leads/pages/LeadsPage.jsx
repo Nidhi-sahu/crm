@@ -144,19 +144,17 @@ export default function LeadsPage() {
   };
 
   const handleCompleteVisit = async (leadId, reportData, toStageId) => {
-    try {
-      await saveVisitReport(leadId, reportData);
-      let updated = null;
-      if (toStageId) {
-        updated = await moveStage(leadId, toStageId, 'Visit report submitted');
-      }
-      if (updated) setDetailsModal((m) => ({ ...m, lead: { ...m.lead, ...updated } }));
-      loadHistory(leadId);
-      setToast({ open: true, tone: 'success', message: 'Visit report saved & stage moved' });
-      reload();
-    } catch (_) {
-      // saveError set in slice
+    // No try/catch here — let errors (e.g. geo-location block) propagate to the
+    // VisitReportModal so it can show the reason and keep the form open.
+    await saveVisitReport(leadId, reportData);
+    let updated = null;
+    if (toStageId) {
+      updated = await moveStage(leadId, toStageId, 'Visit report submitted');
     }
+    if (updated) setDetailsModal((m) => ({ ...m, lead: { ...m.lead, ...updated } }));
+    loadHistory(leadId);
+    setToast({ open: true, tone: 'success', message: 'Visit report saved & stage moved' });
+    reload();
   };
 
   const handleDrop = async (leadId, reason) => {

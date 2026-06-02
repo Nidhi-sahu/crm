@@ -7,7 +7,7 @@ const findById = (id) =>
     .populate({
       path: 'enquiryId',
       select:
-        'clientName clientPhone clientEmail companyName requirement budgetMin budgetMax',
+        'clientName clientPhone clientEmail companyName requirement budgetMin budgetMax project',
     })
     .populate({ path: 'currentStageId', select: 'name order color isFinal allowedNextStages' })
     .populate({ path: 'assignedTo', select: 'name email' })

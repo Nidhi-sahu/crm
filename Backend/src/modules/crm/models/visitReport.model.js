@@ -28,6 +28,14 @@ const visitReportSchema = new mongoose.Schema(
     // Photo upload deferred (S3 later) — stores URL once wired.
     photoUrl: { type: String, trim: true, default: '' },
 
+    // Geo-location verification (Visit Form must be filled at site/office).
+    submittedLat: { type: Number, default: null },
+    submittedLng: { type: Number, default: null },
+    submittedAccuracy: { type: Number, default: null },
+    geoVerified: { type: Boolean, default: false },
+    geoDistanceMeters: { type: Number, default: null },
+    geoMatchedLocation: { type: String, trim: true, default: '' },
+
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true }

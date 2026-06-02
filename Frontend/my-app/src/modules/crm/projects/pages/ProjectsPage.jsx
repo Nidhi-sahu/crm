@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { PERMISSIONS } from '../../auth/constants/permissions';
 import { projectsService } from '../services/projectsService';
 import { ProjectFormModal } from '../components/ProjectFormModal';
+import { OfficeLocationModal } from '../components/OfficeLocationModal';
 import { Button } from '../../../../shared/components/Button';
 import { Alert } from '../../../../shared/components/Alert';
 import { Spinner } from '../../../../shared/components/Spinner';
@@ -19,7 +20,9 @@ export default function ProjectsPage() {
   const { can } = useAuth();
   const canCreate = can(PERMISSIONS.project.create);
   const canUpdate = can(PERMISSIONS.project.update);
+  const canSetOffice = can(PERMISSIONS.configuration.update);
   const showActions = canCreate || canUpdate;
+  const [officeOpen, setOfficeOpen] = useState(false);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,15 +82,26 @@ export default function ProjectsPage() {
             Company projects — visible to everyone. Used as options in the enquiry “Preferred Location”.
           </p>
         </div>
-        {canCreate && (
-          <Button
-            variant="primary"
-            onClick={() => setModal({ open: true, project: null })}
-            className="!gap-1.5 !rounded-md !px-3 !py-1.5 !text-xs"
-          >
-            + Add Project
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {canSetOffice && (
+            <Button
+              variant="secondary"
+              onClick={() => setOfficeOpen(true)}
+              className="!gap-1.5 !rounded-md !px-3 !py-1.5 !text-xs"
+            >
+              📍 Office Location
+            </Button>
+          )}
+          {canCreate && (
+            <Button
+              variant="primary"
+              onClick={() => setModal({ open: true, project: null })}
+              className="!gap-1.5 !rounded-md !px-3 !py-1.5 !text-xs"
+            >
+              + Add Project
+            </Button>
+          )}
+        </div>
       </div>
 
       {error && <Alert tone="error" title="Failed">{error}</Alert>}
@@ -168,6 +182,14 @@ export default function ProjectsPage() {
             setSaveError(null);
           }}
           onSubmit={handleSubmit}
+        />
+      )}
+
+      {canSetOffice && (
+        <OfficeLocationModal
+          open={officeOpen}
+          onClose={() => setOfficeOpen(false)}
+          onSaved={() => setToast({ open: true, tone: 'success', message: 'Office location saved' })}
         />
       )}
     </div>

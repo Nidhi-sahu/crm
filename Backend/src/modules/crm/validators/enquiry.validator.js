@@ -145,6 +145,7 @@ const checkPhone = {
 const bulkImport = {
   body: Joi.object({
     source: baseFields.source.required(),
+    brokerName: Joi.string().trim().max(120).allow('').optional(),
     rows: Joi.array()
       .items(
         Joi.object({

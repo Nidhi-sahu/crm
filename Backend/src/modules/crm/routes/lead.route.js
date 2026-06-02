@@ -1,6 +1,7 @@
 const express = require('express');
 const ctrl = require('../controllers/lead.controller');
 const assignCtrl = require('../controllers/leadAssignment.controller');
+const whatsappCtrl = require('../controllers/whatsapp.controller');
 const validate = require('../../../middlewares/validate.middleware');
 const auth = require('../../../middlewares/auth.middleware');
 const adminOnly = require('../../../middlewares/adminOnly.middleware');
@@ -22,6 +23,12 @@ router.get('/:id/assignments', rbac('lead:read'), validate(av.byId), assignCtrl.
 
 router.get('/:id/visit-report', rbac('lead:read'), validate(v.byId), ctrl.listVisitReports);
 router.post('/:id/visit-report', rbac('lead:update'), validate(v.visitReport), ctrl.createVisitReport);
+
+router.get('/:id/calls', rbac('lead:read'), validate(v.byId), ctrl.listCalls);
+router.post('/:id/calls', rbac('lead:update'), validate(v.logCall), ctrl.logCall);
+
+router.get('/:id/whatsapp', rbac('lead:read'), validate(v.byId), whatsappCtrl.listForLead);
+router.post('/:id/whatsapp', rbac('lead:update'), validate(v.whatsappSend), whatsappCtrl.sendForLead);
 
 router.patch('/:id', rbac('lead:update'), validate(v.update), ctrl.update);
 

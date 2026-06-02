@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Modal } from '../../../../shared/components/Modal';
 import { Button } from '../../../../shared/components/Button';
 import { SelectInput } from '../../../../shared/components/SelectInput';
+import { Input } from '../../../../shared/components/Input';
 import { Alert } from '../../../../shared/components/Alert';
 import { extractApiError } from '../../../../shared/api/axiosClient';
 import { IMPORT_SOURCE_OPTIONS } from '../constants/importSources';
@@ -28,7 +29,8 @@ const buildAssignments = (leadIds, allocations) => {
 
 export function BulkImportModal({ open, onClose, onImported, onDistributed }) {
   const [step, setStep] = useState('import'); // 'import' | 'result' | 'distribute'
-  const [source, setSource] = useState('metaAds');
+  const [source, setSource] = useState('broker');
+  const [brokerName, setBrokerName] = useState('');
   const [rawText, setRawText] = useState('');
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState(null);
@@ -62,7 +64,8 @@ export function BulkImportModal({ open, onClose, onImported, onDistributed }) {
 
   const reset = () => {
     setStep('import');
-    setSource('metaAds');
+    setSource('broker');
+    setBrokerName('');
     setRawText('');
     setResult(null);
     setError(null);
@@ -91,10 +94,16 @@ export function BulkImportModal({ open, onClose, onImported, onDistributed }) {
 
   const handleImport = async () => {
     if (!validRows.length) return;
+    if (source === 'broker' && !brokerName.trim()) {
+      setError({ message: "Broker name is required when source is Broker." });
+      return;
+    }
     setImporting(true);
     setError(null);
     try {
-      const res = await enquiryService.bulkImport({ source, rows: validRows });
+      const payload = { source, rows: validRows };
+      if (source === 'broker') payload.brokerName = brokerName.trim();
+      const res = await enquiryService.bulkImport(payload);
       setResult(res);
       onImported?.(res);
       setStep(res?.created?.length ? 'distribute' : 'result');
@@ -163,7 +172,7 @@ export function BulkImportModal({ open, onClose, onImported, onDistributed }) {
       open={open}
       onClose={handleClose}
       title="Bulk Import Leads"
-      subtitle="Import from Meta Ads, Housing, Facebook or CSV — duplicate phones are skipped"
+      subtitle="Import leads by source — duplicate phones are skipped"
       width="max-w-2xl"
       footer={footer}
     >
@@ -188,13 +197,23 @@ export function BulkImportModal({ open, onClose, onImported, onDistributed }) {
         <div className="space-y-4">
           {error?.message && <Alert tone="error" title="Import failed">{error.message}</Alert>}
 
-          <div>
-            <label className="field-label">Source platform</label>
-            <SelectInput
-              options={IMPORT_SOURCE_OPTIONS}
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-            />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="field-label">Source of Lead</label>
+              <SelectInput
+                options={IMPORT_SOURCE_OPTIONS}
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+              />
+            </div>
+            {source === 'broker' && (
+              <Input
+                label="Broker Name *"
+                placeholder="e.g. Rajesh Properties"
+                value={brokerName}
+                onChange={(e) => setBrokerName(e.target.value)}
+              />
+            )}
           </div>
 
           <label className="group flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center transition-colors hover:border-brand-400 hover:bg-brand-50">

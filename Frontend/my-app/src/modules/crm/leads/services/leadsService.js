@@ -145,6 +145,26 @@ export const leadsService = {
     return Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
   },
 
+  async logCall(leadId, payload) {
+    const data = unwrap(await leadsAPI.logCall(leadId, payload));
+    return data?.call || data;
+  },
+
+  async listCalls(leadId) {
+    const data = unwrap(await leadsAPI.listCalls(leadId));
+    return Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+  },
+
+  async sendWhatsapp(leadId, payload) {
+    const data = unwrap(await leadsAPI.sendWhatsapp(leadId, payload));
+    return data?.message || data;
+  },
+
+  async listWhatsapp(leadId) {
+    const data = unwrap(await leadsAPI.listWhatsapp(leadId));
+    return Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+  },
+
   async uploadVisitPhoto(file) {
     const data = unwrap(await leadsAPI.uploadVisitPhoto(file));
     return data?.url || '';

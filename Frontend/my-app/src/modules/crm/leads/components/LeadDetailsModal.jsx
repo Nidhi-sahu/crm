@@ -15,6 +15,8 @@ import { StageProgress } from './StageProgress';
 import { StageMoveDialog } from './StageMoveDialog';
 import { VisitReportModal } from './VisitReportModal';
 import { MoveBackFromVisitModal } from './MoveBackFromVisitModal';
+import { CallLogModal } from './CallLogModal';
+import { WhatsappModal } from './WhatsappModal';
 import { PreviousLeadHistoryPanel } from './PreviousLeadHistoryPanel';
 import { AssignmentHistoryPanel } from './AssignmentHistoryPanel';
 import { formatDate, initialsOf, shortCode } from '../utils/leadFormatters';
@@ -45,6 +47,53 @@ const isoDateInput = (iso) => {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${m}-${day}`;
+};
+
+const CALL_OUTCOME_LABEL = {
+  connected: 'Connected',
+  not_picked: 'Not Picked',
+  busy: 'Busy',
+  switched_off: 'Switched Off',
+  wrong_number: 'Wrong Number',
+  call_back_later: 'Call Back Later',
+};
+
+const CALL_OUTCOME_TONE = {
+  connected: 'bg-emerald-100 text-emerald-700',
+  not_picked: 'bg-amber-100 text-amber-700',
+  busy: 'bg-amber-100 text-amber-700',
+  switched_off: 'bg-slate-100 text-slate-600',
+  wrong_number: 'bg-rose-100 text-rose-700',
+  call_back_later: 'bg-brand-100 text-brand-700',
+};
+
+const WA_STATUS_TONE = {
+  queued: 'bg-slate-100 text-slate-600',
+  sent: 'bg-brand-100 text-brand-700',
+  delivered: 'bg-emerald-100 text-emerald-700',
+  read: 'bg-emerald-100 text-emerald-700',
+  failed: 'bg-rose-100 text-rose-700',
+};
+
+const formatDuration = (seconds) => {
+  const s = Number(seconds) || 0;
+  if (s <= 0) return '—';
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  if (m === 0) return `${rem}s`;
+  return rem ? `${m}m ${rem}s` : `${m}m`;
+};
+
+const formatDateTime = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 const findNextStage = (lead, stages) => {
@@ -95,6 +144,10 @@ export function LeadDetailsModal({
   const [visitReports, setVisitReports] = useState([]);
   const [latestAssignment, setLatestAssignment] = useState(null);
   const [moveBackOpen, setMoveBackOpen] = useState(false);
+  const [callModalOpen, setCallModalOpen] = useState(false);
+  const [calls, setCalls] = useState([]);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [whatsapps, setWhatsapps] = useState([]);
   const { user: currentUser } = useAuth();
   const isAdmin =
     (currentUser?.roleId?.name || currentUser?.role?.name) === 'Administrator';
@@ -104,6 +157,20 @@ export function LeadDetailsModal({
       .listVisitReports(id)
       .then(setVisitReports)
       .catch(() => setVisitReports([]));
+  };
+
+  const loadCalls = (id) => {
+    leadsService
+      .listCalls(id)
+      .then(setCalls)
+      .catch(() => setCalls([]));
+  };
+
+  const loadWhatsapps = (id) => {
+    leadsService
+      .listWhatsapp(id)
+      .then(setWhatsapps)
+      .catch(() => setWhatsapps([]));
   };
 
   const [localVisitAssignee, setLocalVisitAssignee] = useState(null);
@@ -129,6 +196,8 @@ export function LeadDetailsModal({
       onLoadHistory?.(lead._id);
       onLoadComments?.(lead._id);
       loadVisitReports(lead._id);
+      loadCalls(lead._id);
+      loadWhatsapps(lead._id);
       setLatestAssignment(null);
       leadAssignmentService
         .fetchAssignmentHistory({ leadId: lead._id, limit: 1 })
@@ -200,6 +269,16 @@ export function LeadDetailsModal({
     await onCompleteVisit(lead._id, reportData, nextStage?._id);
     setVisitReportOpen(false);
     loadVisitReports(lead._id);
+  };
+
+  const handleLogCall = async (payload) => {
+    await leadsService.logCall(lead._id, payload);
+    loadCalls(lead._id);
+  };
+
+  const handleSendWhatsapp = async (payload) => {
+    await leadsService.sendWhatsapp(lead._id, payload);
+    loadWhatsapps(lead._id);
   };
 
   const handleSaveProgress = async () => {
@@ -290,7 +369,37 @@ export function LeadDetailsModal({
         width="max-w-3xl"
         footer={
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setCallModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L16 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Call
+                </button>
+              )}
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setWhatsappOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                  </svg>
+                  {Number(lead.currentStageId?.order) === 2 ? 'WhatsApp Confirmation' : 'WhatsApp'}
+                </button>
+              )}
               {canEdit && !isClosed && (
                 <button
                   type="button"
@@ -671,6 +780,112 @@ export function LeadDetailsModal({
 
           <div className="border-t border-slate-100" />
 
+          {/* Section — Call History */}
+          <section className="space-y-2">
+            <SectionHeader>Call History ({calls.length})</SectionHeader>
+            {calls.length === 0 ? (
+              <p className="text-xs italic text-slate-400">No calls logged yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {calls.map((c) => (
+                  <div
+                    key={c._id}
+                    className="rounded-lg border border-slate-200 bg-white p-2.5"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            CALL_OUTCOME_TONE[c.outcome] || 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {CALL_OUTCOME_LABEL[c.outcome] || c.outcome}
+                        </span>
+                        {c.durationSeconds > 0 && (
+                          <span className="text-[11px] text-slate-500">
+                            ⏱ {formatDuration(c.durationSeconds)}
+                          </span>
+                        )}
+                        {c.recordingUrl && (
+                          <a
+                            href={c.recordingUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] font-medium text-brand-600 hover:underline"
+                          >
+                            ▶ Recording
+                          </a>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-400">
+                        {formatDateTime(c.calledAt || c.createdAt)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      {c.calledBy?.name ? `By ${c.calledBy.name}` : ''}
+                      {c.phoneNumber ? ` · ${c.phoneNumber}` : ''}
+                      {c.stageName ? ` · ${c.stageName}` : ''}
+                    </p>
+                    {c.notes && (
+                      <p className="mt-1 whitespace-pre-wrap text-[12px] text-slate-700">
+                        {c.notes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <div className="border-t border-slate-100" />
+
+          {/* Section — WhatsApp History */}
+          <section className="space-y-2">
+            <SectionHeader>WhatsApp History ({whatsapps.length})</SectionHeader>
+            {whatsapps.length === 0 ? (
+              <p className="text-xs italic text-slate-400">No WhatsApp messages yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {whatsapps.map((w) => (
+                  <div key={w._id} className="rounded-lg border border-slate-200 bg-white p-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            w.direction === 'inbound'
+                              ? 'bg-sky-100 text-sky-700'
+                              : WA_STATUS_TONE[w.status] || 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {w.direction === 'inbound' ? 'Reply' : w.status}
+                        </span>
+                        {w.templateName && (
+                          <span className="text-[10px] text-slate-400">template: {w.templateName}</span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-400">
+                        {formatDateTime(w.sentAt || w.createdAt)}
+                      </span>
+                    </div>
+                    {w.body && (
+                      <p className="mt-1 whitespace-pre-wrap text-[12px] text-slate-700">{w.body}</p>
+                    )}
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      {w.direction === 'inbound'
+                        ? `From ${w.toNumber}`
+                        : `${w.sentBy?.name ? `By ${w.sentBy.name}` : ''}${w.toNumber ? ` · to ${w.toNumber}` : ''}`}
+                    </p>
+                    {w.errorMessage && (
+                      <p className="mt-1 text-[11px] text-rose-600">{w.errorMessage}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <div className="border-t border-slate-100" />
+
           {/* Visit Reports */}
           {visitReports.length > 0 && (
             <>
@@ -690,6 +905,38 @@ export function LeadDetailsModal({
                           {formatDate(r.visitedAt || r.createdAt)}
                         </span>
                       </div>
+
+                      {/* Location verification (where the form was filled) */}
+                      {(typeof r.submittedLat === 'number' || r.geoVerified) && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          {r.geoVerified ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              📍 Location verified
+                              {typeof r.geoDistanceMeters === 'number' &&
+                                ` · ${r.geoDistanceMeters}m`}
+                              {r.geoMatchedLocation &&
+                                r.geoMatchedLocation !== 'no-locations-configured' &&
+                                ` from ${r.geoMatchedLocation}`}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                              📍 Location captured (no geo-fence configured)
+                            </span>
+                          )}
+                          {typeof r.submittedLat === 'number' &&
+                            typeof r.submittedLng === 'number' && (
+                              <a
+                                href={`https://www.google.com/maps?q=${r.submittedLat},${r.submittedLng}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] font-medium text-brand-600 hover:underline"
+                              >
+                                View on map
+                              </a>
+                            )}
+                        </div>
+                      )}
+
                       <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
                         <InfoRow label="Customer" value={r.customerName} />
                         <InfoRow label="Contact" value={r.contactNumber} />
@@ -846,6 +1093,20 @@ export function LeadDetailsModal({
         stages={stages}
         onClose={() => setMoveBackOpen(false)}
         onConfirm={handleMoveBackConfirm}
+      />
+
+      <CallLogModal
+        open={callModalOpen}
+        lead={lead}
+        onClose={() => setCallModalOpen(false)}
+        onSubmit={handleLogCall}
+      />
+
+      <WhatsappModal
+        open={whatsappOpen}
+        lead={lead}
+        onClose={() => setWhatsappOpen(false)}
+        onSent={handleSendWhatsapp}
       />
     </>
   );

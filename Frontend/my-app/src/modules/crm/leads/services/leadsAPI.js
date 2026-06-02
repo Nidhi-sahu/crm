@@ -54,6 +54,18 @@ export const leadsAPI = {
   listVisitReports(id) {
     return axiosClient.get(`${BASE}/${id}/visit-report`);
   },
+  logCall(id, payload) {
+    return axiosClient.post(`${BASE}/${id}/calls`, payload);
+  },
+  listCalls(id) {
+    return axiosClient.get(`${BASE}/${id}/calls`);
+  },
+  sendWhatsapp(id, payload) {
+    return axiosClient.post(`${BASE}/${id}/whatsapp`, payload);
+  },
+  listWhatsapp(id) {
+    return axiosClient.get(`${BASE}/${id}/whatsapp`);
+  },
   uploadVisitPhoto(file) {
     const fd = new FormData();
     fd.append('photo', file);

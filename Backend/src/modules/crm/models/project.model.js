@@ -25,6 +25,9 @@ const projectSchema = new mongoose.Schema(
     status: { type: String, enum: PROJECT_STATUS, default: 'ongoing', index: true },
     description: { type: String, trim: true, default: '' },
     isActive: { type: Boolean, default: true, index: true },
+    // Geo-coordinates of the site/project — used for Visit Form location check.
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
     bankDetails: { type: bankDetailsSchema, default: () => ({}) },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

@@ -126,7 +126,38 @@ const visitReport = {
     seniorPerson: Joi.string().trim().max(120).allow(''),
     visitNumber: Joi.string().valid('1st', '2nd', '3rd', '4th+').optional(),
     photoUrl: Joi.string().trim().max(500).allow(''),
+    // Geo-location of the submitter (Visit Form location restriction).
+    latitude: Joi.number().min(-90).max(90).optional(),
+    longitude: Joi.number().min(-180).max(180).optional(),
+    accuracy: Joi.number().min(0).optional(),
   }),
 };
 
-module.exports = { fromEnquiry, walkin, update, list, moveStage, moveBackFromVisit, markLost, markDropped, byId, visitReport };
+const logCall = {
+  params: idParam,
+  body: Joi.object({
+    phoneNumber: Joi.string().trim().max(20).allow('').optional(),
+    direction: Joi.string().valid('outbound', 'inbound').optional(),
+    outcome: Joi.string()
+      .valid('connected', 'not_picked', 'busy', 'switched_off', 'wrong_number', 'call_back_later')
+      .optional(),
+    durationSeconds: Joi.number().integer().min(0).max(86400).optional(),
+    stageName: Joi.string().trim().max(120).allow('').optional(),
+    notes: Joi.string().trim().max(2000).allow('').optional(),
+    calledAt: Joi.date().iso().optional(),
+  }),
+};
+
+const whatsappSend = {
+  params: idParam,
+  body: Joi.object({
+    toNumber: Joi.string().trim().max(20).allow('').optional(),
+    type: Joi.string().valid('text', 'template').optional(),
+    body: Joi.string().trim().max(4000).allow('').optional(),
+    templateName: Joi.string().trim().max(120).allow('').optional(),
+    languageCode: Joi.string().trim().max(10).optional(),
+    bodyParams: Joi.array().items(Joi.string().max(500)).optional(),
+  }),
+};
+
+module.exports = { fromEnquiry, walkin, update, list, moveStage, moveBackFromVisit, markLost, markDropped, byId, visitReport, logCall, whatsappSend };

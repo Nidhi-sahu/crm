@@ -57,8 +57,10 @@ export const enquiryService = {
     return { exists: !!data?.exists, idle: !!data?.idle };
   },
 
-  async bulkImport({ source, rows }) {
-    return unwrap(await enquiryAPI.bulkImport({ source, rows }));
+  async bulkImport({ source, rows, brokerName }) {
+    const payload = { source, rows };
+    if (brokerName) payload.brokerName = brokerName;
+    return unwrap(await enquiryAPI.bulkImport(payload));
   },
 
   async bulkAssign(assignments) {

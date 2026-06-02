@@ -22,6 +22,8 @@ const create = {
     status: Joi.string().valid(...STATUS).optional(),
     description: Joi.string().trim().max(1000).allow('').optional(),
     isActive: Joi.boolean().optional(),
+    latitude: Joi.number().min(-90).max(90).allow(null).optional(),
+    longitude: Joi.number().min(-180).max(180).allow(null).optional(),
     bankDetails: bankDetailsSchema,
   }),
 };
@@ -35,6 +37,8 @@ const update = {
     status: Joi.string().valid(...STATUS).optional(),
     description: Joi.string().trim().max(1000).allow('').optional(),
     isActive: Joi.boolean().optional(),
+    latitude: Joi.number().min(-90).max(90).allow(null).optional(),
+    longitude: Joi.number().min(-180).max(180).allow(null).optional(),
     bankDetails: bankDetailsSchema,
   }).min(1),
 };

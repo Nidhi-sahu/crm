@@ -107,7 +107,7 @@ export function LoginForm() {
           <div className="flex justify-center">
             <GoogleLogin
               onSuccess={onGoogleSuccess}
-              onError={() => {}}
+              onError={() => { }}
               text="signin_with"
               shape="rectangular"
               width="280"

@@ -32,6 +32,18 @@ module.exports = {
     clientSecret: env.GOOGLE_CLIENT_SECRET,
   },
 
+  whatsapp: {
+    businessNumber: env.WHATSAPP_BUSINESS_NUMBER,
+    businessManagerId: env.WHATSAPP_BUSINESS_MANAGER_ID,
+    businessAccountId: env.WHATSAPP_BUSINESS_ACCOUNT_ID,
+    phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
+    accessToken: env.WHATSAPP_ACCESS_TOKEN,
+    apiVersion: env.WHATSAPP_API_VERSION || 'v21.0',
+    webhookVerifyToken: env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+    appSecret: env.WHATSAPP_APP_SECRET,
+    confirmationTemplate: env.WHATSAPP_CONFIRMATION_TEMPLATE,
+  },
+
   rateLimit: {
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     max: env.RATE_LIMIT_MAX,

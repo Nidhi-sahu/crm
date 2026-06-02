@@ -18,6 +18,16 @@ const schema = Joi.object({
   GOOGLE_CLIENT_ID: Joi.string().allow('').default(''),
   GOOGLE_CLIENT_SECRET: Joi.string().allow('').default(''),
 
+  WHATSAPP_BUSINESS_NUMBER: Joi.string().allow('').default(''),
+  WHATSAPP_BUSINESS_MANAGER_ID: Joi.string().allow('').default(''),
+  WHATSAPP_BUSINESS_ACCOUNT_ID: Joi.string().allow('').default(''),
+  WHATSAPP_PHONE_NUMBER_ID: Joi.string().allow('').default(''),
+  WHATSAPP_ACCESS_TOKEN: Joi.string().allow('').default(''),
+  WHATSAPP_API_VERSION: Joi.string().allow('').default('v21.0'),
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: Joi.string().allow('').default(''),
+  WHATSAPP_APP_SECRET: Joi.string().allow('').default(''),
+  WHATSAPP_CONFIRMATION_TEMPLATE: Joi.string().allow('').default(''),
+
   RATE_LIMIT_WINDOW_MS: Joi.number().default(15 * 60 * 1000),
   RATE_LIMIT_MAX: Joi.number().default(300),
 
