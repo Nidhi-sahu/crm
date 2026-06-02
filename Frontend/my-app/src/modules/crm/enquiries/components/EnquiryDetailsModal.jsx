@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Modal } from '../../../../shared/components/Modal';
 import { Button } from '../../../../shared/components/Button';
 import { PreviousLeadHistoryPanel } from '../../leads/components/PreviousLeadHistoryPanel';
+import { qualificationService } from '../../qualifications/services/qualificationService';
 import {
   backendToUiStatus,
   uiStatusLabel,
@@ -69,6 +71,25 @@ const fullDateTime = (value) => {
 };
 
 export function EnquiryDetailsModal({ open, enquiry, onClose }) {
+  // Qualification lives on its own record; fetch it so the qualify remark is
+  // visible right here in the enquiry detail.
+  const [qualification, setQualification] = useState(null);
+
+  useEffect(() => {
+    if (!open || !enquiry?._id) {
+      setQualification(null);
+      return undefined;
+    }
+    let active = true;
+    qualificationService
+      .getExisting(enquiry._id)
+      .then((q) => active && setQualification(q))
+      .catch(() => active && setQualification(null));
+    return () => {
+      active = false;
+    };
+  }, [open, enquiry?._id]);
+
   if (!enquiry) return null;
 
   return (
@@ -124,6 +145,15 @@ export function EnquiryDetailsModal({ open, enquiry, onClose }) {
             )}
           </p>
         </section>
+
+        {qualification?.remarks && qualification.remarks.trim() && (
+          <section className="rounded-xl border border-slate-200 bg-white p-4">
+            <SectionTitle>Qualification Remark</SectionTitle>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+              {qualification.remarks}
+            </p>
+          </section>
+        )}
 
         <SectionCard title="System Information">
           <Field label="Created On" value={fullDateTime(enquiry.createdAt)} />

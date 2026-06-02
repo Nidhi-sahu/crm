@@ -77,6 +77,15 @@ export const buildTimeline = ({ enquiry, qualification }) => {
         at: qualification.updatedAt || qualification.createdAt,
       });
     }
+    if (qualification.remarks && qualification.remarks.trim()) {
+      events.push({
+        id: 'qualification-remark',
+        verb: 'Remark added',
+        detail: qualification.remarks.trim(),
+        actor: userName(qualification.qualifiedBy || qualification.updatedBy || qualification.createdBy),
+        at: qualification.qualifiedAt || qualification.updatedAt || qualification.createdAt,
+      });
+    }
   }
 
   return events

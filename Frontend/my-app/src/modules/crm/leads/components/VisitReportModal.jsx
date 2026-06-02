@@ -28,7 +28,6 @@ const REQUIRED_FIELDS = {
   projectVisited: 'Project Visited',
   propertyInterested: 'Property Interested In',
   customerBudget: 'Customer Budget',
-  seniorPerson: 'Senior Person',
 };
 
 const buildInitial = (lead) => {
@@ -231,7 +230,7 @@ export function VisitReportModal({ open, lead, nextStage, saving, saveError, onC
             <Input label="Sales Person Name" value={form.salesPersonName} onChange={set('salesPersonName')} />
             <Input label="Visitor Name *" value={form.visitorName} onChange={set('visitorName')} error={errors.visitorName} />
             <Input label="Project Visited *" value={form.projectVisited} onChange={set('projectVisited')} error={errors.projectVisited} />
-            <Input label="Senior Person (conducted visit) *" value={form.seniorPerson} onChange={set('seniorPerson')} error={errors.seniorPerson} />
+            <Input label="Meeting Person (At Office)" value={form.seniorPerson} onChange={set('seniorPerson')} error={errors.seniorPerson} />
             <SelectInput
               label="Number of Visit"
               options={VISIT_NUMBER_OPTIONS}

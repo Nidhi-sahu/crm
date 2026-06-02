@@ -68,12 +68,23 @@ export function QualificationModal({ open, enquiry, onClose, onSubmitted }) {
   const {
     questions,
     questionsLoading,
-    existing,
+    existing: existingRaw,
     saving,
     saveError,
     submit,
     clearSaveError,
   } = useQualification(enquiry?._id, open);
+
+  // `existingRaw` is shared Redux state across all enquiries. During the async
+  // load it can still hold a PREVIOUS enquiry's qualification — using it here
+  // pre-filled the form on a freshly created/opened enquiry. Only trust it when
+  // it actually belongs to THIS enquiry.
+  const existing =
+    existingRaw &&
+    String(existingRaw.enquiryId?._id || existingRaw.enquiryId || '') ===
+      String(enquiry?._id || '')
+      ? existingRaw
+      : null;
 
   const isFinalized =
     existing &&

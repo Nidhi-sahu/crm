@@ -35,6 +35,11 @@ export function QualificationTimeline({ enquiry, qualification }) {
           </div>
           <div className="flex-1 pb-1">
             <p className="text-sm text-slate-800">{event.verb}</p>
+            {event.detail && (
+              <p className="mt-1 rounded-md bg-slate-50 px-2 py-1 text-xs italic text-slate-700">
+                “{event.detail}”
+              </p>
+            )}
             <p className="mt-0.5 text-[11px] text-slate-500">
               <span className="font-medium text-slate-600">{event.actor}</span>
               {' · '}

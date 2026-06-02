@@ -1019,7 +1019,7 @@ export function LeadDetailsModal({
                         <InfoRow label="Budget" value={r.customerBudget} />
                         <InfoRow label="Profession" value={r.customerProfession} />
                         <InfoRow label="Source" value={r.sourceOfCustomer} />
-                        <InfoRow label="Senior Person" value={r.seniorPerson} />
+                        <InfoRow label="Meeting Person (At Office)" value={r.seniorPerson} />
                         <div className="sm:col-span-2">
                           <InfoRow label="Address" value={r.customerAddress} />
                         </div>
