@@ -17,7 +17,9 @@ const cleanParams = (params = {}) => {
 
 export const leadAssignmentService = {
   async fetchLeads(params = {}) {
-    const res = await leadAPI.list(cleanParams({ status: 'active', ...params }));
+    // Only unassigned leads belong in the Lead Assignment section — once a lead
+    // gets an owner it disappears here and lives in that user's Leads section.
+    const res = await leadAPI.list(cleanParams({ status: 'active', assigned: false, ...params }));
     const data = unwrap(res);
     const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
     const pagination =

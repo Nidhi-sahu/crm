@@ -6,6 +6,7 @@ const reminderService = require('./reminder.service');
 const ApiError = require('../../../utils/ApiError');
 const { buildSkip } = require('../../../utils/pagination');
 const { REFERENCE_TYPE } = require('../../../constants/referenceTypes');
+const { LEAD_STATUS } = require('../../../constants/statuses');
 const stageAccessGuard = require('./stageAccessGuard');
 
 const assertReferenceExists = async (referenceType, referenceId) => {
@@ -27,6 +28,9 @@ const create = async (data, actor) => {
   if (data.referenceType === REFERENCE_TYPE.LEAD) {
     lead = await leadRepo.findById(data.referenceId);
     if (!lead) throw ApiError.badRequest(`${data.referenceType} not found: ${data.referenceId}`);
+    if (lead.status === LEAD_STATUS.DROPPED) {
+      throw ApiError.badRequest('This lead is dropped — comments are disabled');
+    }
     stageAccessGuard.assertLeadAccess(actor, lead, 'comment');
   } else {
     await assertReferenceExists(data.referenceType, data.referenceId);
@@ -54,7 +58,9 @@ const create = async (data, actor) => {
     });
   }
 
-  return created.toObject();
+  // Return the populated comment so the author's name shows immediately
+  // (create() alone leaves createdBy as a raw ObjectId → UI falls back to "User").
+  return commentRepo.findById(created._id);
 };
 
 const list = async (query) => {

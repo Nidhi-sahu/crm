@@ -58,6 +58,7 @@ const list = {
     source: Joi.string().valid(...SOURCE_VALUES).optional(),
     currentStageId: objectId.optional(),
     assignedTo: objectId.optional(),
+    assigned: Joi.boolean().optional(),
     from: Joi.date().iso().optional(),
     to: Joi.date().iso().min(Joi.ref('from')).optional(),
     activityDate: Joi.date().iso().optional(),

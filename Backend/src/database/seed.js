@@ -49,8 +49,8 @@ const rolePermissions = {
   ],
   [ROLES.TELE_SALES]: [
     'dashboard:view',
-    'enquiry:read',
-    'qualification:read',
+    'enquiry:read', 'enquiry:update',
+    'qualification:create', 'qualification:read', 'qualification:update',
     'lead:read', 'lead:update', 'lead:moveStage',
     'leadStage:read',
     'comment:create', 'comment:read',

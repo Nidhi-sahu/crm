@@ -308,7 +308,12 @@ const list = async (query, actor) => {
   if (temperature) filter.temperature = temperature;
   if (source) filter.source = source;
   if (currentStageId) filter.currentStageId = currentStageId;
+  // assignedTo (specific user) takes precedence; otherwise `assigned` boolean
+  // splits unassigned (false) vs assigned (true) — used by the Lead Assignment
+  // section to show ONLY leads that still need an owner.
   if (assignedTo) filter.assignedTo = assignedTo;
+  else if (query.assigned === false) filter.assignedTo = null;
+  else if (query.assigned === true) filter.assignedTo = { $ne: null };
   if (from || to) {
     filter.createdAt = {};
     if (from) filter.createdAt.$gte = new Date(from);
@@ -319,6 +324,11 @@ const list = async (query, actor) => {
   const actorRoleName = actor && actor.roleId && actor.roleId.name;
   if (actorRoleName === ROLES.VISIT_TEAM) {
     filter.visitAssignedTo = actor._id;
+  }
+
+  // Sales Person sees ONLY leads assigned to them (data isolation).
+  if (actorRoleName === ROLES.SALES_PERSON) {
+    filter.assignedTo = actor._id;
   }
 
   // Brokers see ONLY leads referred via them (enquiry.brokerId = broker._id).

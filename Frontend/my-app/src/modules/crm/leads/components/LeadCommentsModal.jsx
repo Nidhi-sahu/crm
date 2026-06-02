@@ -32,6 +32,9 @@ export function LeadCommentsModal({
 
   if (!lead) return null;
 
+  const isClosed = lead.status && lead.status !== 'active';
+  const isDropped = lead.status === 'dropped';
+
   const submit = async () => {
     if (!comment.trim()) {
       setError({ message: 'Comment cannot be empty' });
@@ -63,7 +66,7 @@ export function LeadCommentsModal({
       footer={
         <div className="flex items-center justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={saving}>Close</Button>
-          <Button variant="primary" onClick={submit} disabled={saving || !comment.trim()} loading={saving}>
+          <Button variant="primary" onClick={submit} disabled={saving || isClosed || !comment.trim()} loading={saving}>
             Add Comment
           </Button>
         </div>
@@ -72,30 +75,38 @@ export function LeadCommentsModal({
       <div className="space-y-4">
         {error?.message && <Alert tone="error">{error.message}</Alert>}
 
-        {/* Composer */}
-        <section className="space-y-2">
-          <Textarea
-            label="New comment"
-            rows={3}
-            placeholder="Add a quick note, observation, or followup detail…"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Input
-              label="Reminder Date"
-              type="date"
-              value={followupDate}
-              onChange={(e) => setFollowupDate(e.target.value)}
+        {/* Composer — hidden once the lead is closed (dropped / won / lost) */}
+        {isClosed ? (
+          <Alert tone="warning">
+            {isDropped
+              ? 'This lead has been dropped — adding comments is disabled.'
+              : `This lead is ${lead.status} — adding comments is disabled.`}
+          </Alert>
+        ) : (
+          <section className="space-y-2">
+            <Textarea
+              label="New comment"
+              rows={3}
+              placeholder="Add a quick note, observation, or followup detail…"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
             />
-            <Input
-              label="Reminder Time"
-              type="time"
-              value={followupTime}
-              onChange={(e) => setFollowupTime(e.target.value)}
-            />
-          </div>
-        </section>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Input
+                label="Reminder Date"
+                type="date"
+                value={followupDate}
+                onChange={(e) => setFollowupDate(e.target.value)}
+              />
+              <Input
+                label="Reminder Time"
+                type="time"
+                value={followupTime}
+                onChange={(e) => setFollowupTime(e.target.value)}
+              />
+            </div>
+          </section>
+        )}
 
         <div className="border-t border-slate-100" />
 
