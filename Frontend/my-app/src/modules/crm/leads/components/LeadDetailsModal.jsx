@@ -7,6 +7,7 @@ import { Textarea } from '../../../../shared/components/Textarea';
 import { Alert } from '../../../../shared/components/Alert';
 import { Skeleton } from '../../dashboard/components/Skeleton';
 import { LeadStatusBadge } from './LeadStatusBadge';
+import { LeadStageBadge } from './LeadStageBadge';
 import { TemperatureChip } from '../../enquiries/components/TemperatureChip';
 import { TEMPERATURE_OPTIONS } from '../../enquiries/constants/enquiryTemperatures';
 import { LeadTimeline } from './LeadTimeline';
@@ -148,6 +149,7 @@ export function LeadDetailsModal({
   const [calls, setCalls] = useState([]);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [whatsapps, setWhatsapps] = useState([]);
+  const [activeTab, setActiveTab] = useState('overview');
   const { user: currentUser } = useAuth();
   const isAdmin =
     (currentUser?.roleId?.name || currentUser?.role?.name) === 'Administrator';
@@ -190,6 +192,7 @@ export function LeadDetailsModal({
     );
     setPlannedDate(isoDateInput(lead.plannedStageAt));
     setComment('');
+    setActiveTab('overview');
     setLocalVisitAssignee(lead.visitAssignedTo || null);
     setVisitEditing(false);
     if (lead._id) {
@@ -359,6 +362,14 @@ export function LeadDetailsModal({
 
   const enquiry = lead.enquiryId || {};
 
+  const TABS = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'timeline', label: 'Timeline' },
+    { key: 'comms', label: 'Calls & WhatsApp', count: calls.length + whatsapps.length },
+    { key: 'visits', label: 'Visits', count: visitReports.length },
+    { key: 'history', label: 'History' },
+  ];
+
   return (
     <>
       <Modal
@@ -457,6 +468,47 @@ export function LeadDetailsModal({
             <Alert tone="error" title="Action failed">{saveError.message}</Alert>
           )}
 
+          {/* Sticky header — at-a-glance badges + tab bar */}
+          <div className="sticky -top-5 z-20 -mx-5 -mt-5 border-b border-slate-200 bg-white pt-5 shadow-sm">
+            <div className="flex flex-wrap items-center gap-1.5 px-5 pb-2.5">
+              {lead.currentStageId && <LeadStageBadge stage={lead.currentStageId} />}
+              <LeadStatusBadge status={lead.status} />
+              {lead.temperature && <TemperatureChip value={lead.temperature} />}
+              {lead.isWalkIn && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                  🚶 Walk-in
+                </span>
+              )}
+            </div>
+            <div className="no-scrollbar flex gap-1 overflow-x-auto px-4 pb-1.5">
+              {TABS.map((t) => {
+                const active = activeTab === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setActiveTab(t.key)}
+                    className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? 'bg-brand-500 text-white shadow-sm'
+                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                    }`}
+                  >
+                    {t.label}
+                    {typeof t.count === 'number' && (
+                      <span className={`ml-1 ${active ? 'text-white/80' : 'text-slate-400'}`}>
+                        {t.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ===== TAB: Overview ===== */}
+          {activeTab === 'overview' && (
+          <div className="space-y-5">
           {/* Section 1 — Client Information */}
           <section className="space-y-2">
             <SectionHeader>Client Information</SectionHeader>
@@ -534,19 +586,19 @@ export function LeadDetailsModal({
           {/* Section — Lead Information */}
           <section className="space-y-2">
             <SectionHeader>Lead Information</SectionHeader>
-            <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
-              <div className="space-y-0.5">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                  Lead Status
+            <div className="grid grid-cols-1 gap-x-3 gap-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  Status
                 </p>
-                <div className="pt-0.5"><LeadStatusBadge status={lead.status} /></div>
+                <LeadStatusBadge status={lead.status} />
               </div>
-              <div className="space-y-0.5">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                  Lead Temperature
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  Temperature
                 </p>
                 {canEdit && !isClosed ? (
-                  <div className="flex items-center gap-2 pt-0.5">
+                  <div className="flex items-center gap-2">
                     <TemperatureChip value={lead.temperature || 'cold'} />
                     <select
                       value={lead.temperature || 'cold'}
@@ -558,7 +610,7 @@ export function LeadDetailsModal({
                         }
                       }}
                       disabled={saving}
-                      className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-700 focus:border-brand-300 focus:outline-none focus:ring-1 focus:ring-brand-200"
+                      className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-600 focus:border-brand-300 focus:outline-none focus:ring-1 focus:ring-brand-200"
                     >
                       {TEMPERATURE_OPTIONS.map((t) => (
                         <option key={t.value} value={t.value}>
@@ -568,47 +620,48 @@ export function LeadDetailsModal({
                     </select>
                   </div>
                 ) : (
-                  <div className="pt-0.5">
-                    <TemperatureChip value={lead.temperature || 'cold'} />
-                  </div>
+                  <TemperatureChip value={lead.temperature || 'cold'} />
                 )}
               </div>
-              <InfoRow
-                label="Assigned To"
-                value={
-                  lead.assignedTo ? (
-                    <span className="inline-flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700">
-                        {initialsOf(lead.assignedTo.name)}
-                      </span>
-                      {lead.assignedTo.name}
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  Assigned To
+                </p>
+                {lead.assignedTo ? (
+                  <span className="inline-flex items-center gap-2 text-sm font-medium text-slate-800">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700">
+                      {initialsOf(lead.assignedTo.name)}
                     </span>
-                  ) : null
-                }
-              />
-              {lead.assignedTo && (
-                <div className="space-y-0.5">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                    Assignment Method
-                  </p>
-                  <div className="pt-0.5">
-                    {latestAssignment ? (
-                      <AutoAssignedBadge assignment={latestAssignment} />
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                        Assigned
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
+                    <span className="truncate">{lead.assignedTo.name}</span>
+                  </span>
+                ) : (
+                  <span className="text-sm text-slate-300">— Unassigned —</span>
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  Assignment Method
+                </p>
+                {lead.assignedTo ? (
+                  latestAssignment ? (
+                    <AutoAssignedBadge assignment={latestAssignment} />
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                      Assigned
+                    </span>
+                  )
+                ) : (
+                  <span className="text-sm text-slate-300">—</span>
+                )}
+              </div>
 
-              <div className="sm:col-span-2 space-y-0.5">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+              {/* Visit assigned */}
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Visit Assigned To
                 </p>
                 {visitEditing ? (
-                  <div className="flex flex-wrap items-end gap-2 pt-0.5">
+                  <div className="flex flex-wrap items-end gap-2">
                     <div className="min-w-[220px] flex-1 sm:flex-none">
                       <SelectInput
                         placeholder="Select Visit Team member"
@@ -638,9 +691,9 @@ export function LeadDetailsModal({
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap items-center gap-3 pt-0.5">
+                  <div className="flex flex-wrap items-center gap-3">
                     {localVisitAssignee ? (
-                      <span className="inline-flex items-center gap-2 text-sm text-slate-800">
+                      <span className="inline-flex items-center gap-2 text-sm font-medium text-slate-800">
                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700">
                           {initialsOf(localVisitAssignee.name)}
                         </span>
@@ -673,16 +726,6 @@ export function LeadDetailsModal({
                     )}
                   </div>
                 )}
-              </div>
-
-              <div className="sm:col-span-2">
-                <Textarea
-                  label="Requirement"
-                  rows={2}
-                  value={requirement}
-                  onChange={(e) => setRequirement(e.target.value)}
-                  disabled={!canEdit || isClosed}
-                />
               </div>
             </div>
           </section>
@@ -769,17 +812,23 @@ export function LeadDetailsModal({
               undoing={saving}
             />
           </section>
+          </div>
+          )}
 
-          <div className="border-t border-slate-100" />
-
+          {/* ===== TAB: History ===== */}
+          {activeTab === 'history' && (
+          <div className="space-y-5">
           {/* Section — Assignment History (#31) */}
           <section className="space-y-2">
             <SectionHeader>Assignment History</SectionHeader>
             <AssignmentHistoryPanel leadId={lead._id} />
           </section>
+          </div>
+          )}
 
-          <div className="border-t border-slate-100" />
-
+          {/* ===== TAB: Calls & WhatsApp ===== */}
+          {activeTab === 'comms' && (
+          <div className="space-y-5">
           {/* Section — Call History */}
           <section className="space-y-2">
             <SectionHeader>Call History ({calls.length})</SectionHeader>
@@ -883,9 +932,15 @@ export function LeadDetailsModal({
               </div>
             )}
           </section>
+          </div>
+          )}
 
-          <div className="border-t border-slate-100" />
-
+          {/* ===== TAB: Visits ===== */}
+          {activeTab === 'visits' && (
+          <div className="space-y-5">
+          {visitReports.length === 0 && (
+            <p className="text-xs italic text-slate-400">No visit reports yet.</p>
+          )}
           {/* Visit Reports */}
           {visitReports.length > 0 && (
             <>
@@ -1028,11 +1083,14 @@ export function LeadDetailsModal({
                   ))}
                 </div>
               </section>
-
-              <div className="border-t border-slate-100" />
             </>
           )}
+          </div>
+          )}
 
+          {/* ===== TAB: Timeline ===== */}
+          {activeTab === 'timeline' && (
+          <div className="space-y-5">
           {/* Timeline */}
           <section className="space-y-2">
             <SectionHeader>Timeline</SectionHeader>
@@ -1049,6 +1107,8 @@ export function LeadDetailsModal({
               />
             )}
           </section>
+          </div>
+          )}
 
           <p className="text-[11px] text-slate-400 text-center">
             Last activity: {formatDate(lead.lastActivityAt || lead.updatedAt)}
