@@ -35,6 +35,9 @@ const baseFields = {
   familySize: Joi.number().integer().min(0).allow(null),
   assignedQualificationUser: objectId.allow(null),
   qualificationAnswers: Joi.object(),
+  teleSalesExecutive: objectId.allow(null),
+  salesPerson: objectId.allow(null),
+  visitPerson: objectId.allow(null),
 };
 
 const create = {
@@ -68,6 +71,9 @@ const create = {
     familySize: baseFields.familySize.optional(),
     assignedQualificationUser: baseFields.assignedQualificationUser.optional(),
     qualificationAnswers: baseFields.qualificationAnswers.optional(),
+    teleSalesExecutive: baseFields.teleSalesExecutive.optional(),
+    salesPerson: baseFields.salesPerson.optional(),
+    visitPerson: baseFields.visitPerson.optional(),
   }),
 };
 
@@ -103,6 +109,9 @@ const update = {
     familySize: baseFields.familySize.optional(),
     assignedQualificationUser: baseFields.assignedQualificationUser.optional(),
     qualificationAnswers: baseFields.qualificationAnswers.optional(),
+    teleSalesExecutive: baseFields.teleSalesExecutive.optional(),
+    salesPerson: baseFields.salesPerson.optional(),
+    visitPerson: baseFields.visitPerson.optional(),
   }).min(1),
 };
 

@@ -70,6 +70,12 @@ const enquirySchema = new mongoose.Schema(
       index: true,
     },
 
+    // Initial-stage allocation set from the Inquiry form — tracked from creation
+    // for clear ownership across the lead lifecycle.
+    teleSalesExecutive: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+    salesPerson: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+    visitPerson: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+
     // Set when an enquiry was qualified without a visit date and moved back to pending.
     previouslyQualified: { type: Boolean, default: false },
     movedBackAt: { type: Date, default: null },

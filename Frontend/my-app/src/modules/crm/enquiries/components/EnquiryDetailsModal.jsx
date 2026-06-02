@@ -137,6 +137,12 @@ export function EnquiryDetailsModal({ open, enquiry, onClose }) {
           <Field label="Client ID" value={shortCode(enquiry._id, 'CL')} />
         </SectionCard>
 
+        <SectionCard title="Assignment">
+          <Field label="Tele Sales Executive" value={enquiry.teleSalesExecutive?.name} />
+          <Field label="Sales Person" value={enquiry.salesPerson?.name} />
+          <Field label="Visit Person" value={enquiry.visitPerson?.name} />
+        </SectionCard>
+
         <section className="rounded-xl border border-slate-200 bg-white p-4">
           <SectionTitle>Requirement Detail</SectionTitle>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">

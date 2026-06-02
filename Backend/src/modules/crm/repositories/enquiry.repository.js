@@ -10,6 +10,9 @@ const findById = (id) =>
     .populate({ path: 'updatedBy', ...POPULATE_USER })
     .populate({ path: 'assignedQualificationUser', ...POPULATE_USER })
     .populate({ path: 'assignedTo', ...POPULATE_USER })
+    .populate({ path: 'teleSalesExecutive', ...POPULATE_USER })
+    .populate({ path: 'salesPerson', ...POPULATE_USER })
+    .populate({ path: 'visitPerson', ...POPULATE_USER })
     .populate({
       path: 'linkedClosedLeadId',
       select: 'status lostReason closedAt lastActivityAt assignedTo currentStageId enquiryId createdBy createdAt',
@@ -27,6 +30,9 @@ const findAll = ({ filter = {}, sort = { createdAt: -1 }, skip = 0, limit = 20 }
     .populate({ path: 'createdBy', ...POPULATE_USER })
     .populate({ path: 'assignedQualificationUser', ...POPULATE_USER })
     .populate({ path: 'assignedTo', ...POPULATE_USER })
+    .populate({ path: 'teleSalesExecutive', ...POPULATE_USER })
+    .populate({ path: 'salesPerson', ...POPULATE_USER })
+    .populate({ path: 'visitPerson', ...POPULATE_USER })
     .populate({
       path: 'linkedClosedLeadId',
       select: 'status lostReason closedAt lastActivityAt assignedTo currentStageId enquiryId createdBy createdAt',
@@ -49,6 +55,9 @@ const update = (id, data) =>
     .populate({ path: 'createdBy', ...POPULATE_USER })
     .populate({ path: 'assignedQualificationUser', ...POPULATE_USER })
     .populate({ path: 'assignedTo', ...POPULATE_USER })
+    .populate({ path: 'teleSalesExecutive', ...POPULATE_USER })
+    .populate({ path: 'salesPerson', ...POPULATE_USER })
+    .populate({ path: 'visitPerson', ...POPULATE_USER })
     .lean();
 
 const existsByPhone = async (phone, excludeId = null) => {

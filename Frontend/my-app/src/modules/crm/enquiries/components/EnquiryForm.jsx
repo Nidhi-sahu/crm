@@ -77,6 +77,19 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
     brokersService.list().then(setBrokers).catch(() => setBrokers([]));
   }, [isBrokerSource]);
 
+  // Team members for initial-stage allocation (Tele Sales / Sales / Visit).
+  const [teleSalesUsers, setTeleSalesUsers] = useState([]);
+  const [salesPersons, setSalesPersons] = useState([]);
+  const [visitPersons, setVisitPersons] = useState([]);
+  useEffect(() => {
+    leadsService.listTeleSalesUsers().then(setTeleSalesUsers).catch(() => setTeleSalesUsers([]));
+    leadsService.listSalesPersons().then(setSalesPersons).catch(() => setSalesPersons([]));
+    leadsService.listVisitTeamMembers().then(setVisitPersons).catch(() => setVisitPersons([]));
+  }, []);
+
+  const userOptions = (list) =>
+    list.map((u) => ({ value: u._id, label: u.name || u.email }));
+
   const setWalk = (key) => (e) =>
     setWalkIn((w) => ({ ...w, [key]: e.target.value }));
 
@@ -299,6 +312,38 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
           {...register('requirement', enquiryRules.requirement)}
         />
       </section>
+
+      {!isWalkIn && (
+        <>
+          <div className="border-t border-slate-100" />
+          <section className="space-y-3">
+            <SectionHeader>Assignment (optional)</SectionHeader>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <SelectInput
+                label="Tele Sales Executive"
+                placeholder="Select Tele Sales"
+                options={userOptions(teleSalesUsers)}
+                {...register('teleSalesExecutive')}
+              />
+              <SelectInput
+                label="Sales Person"
+                placeholder="Select Sales Person"
+                options={userOptions(salesPersons)}
+                {...register('salesPerson')}
+              />
+              <SelectInput
+                label="Visit Person"
+                placeholder="Select Visit Person"
+                options={userOptions(visitPersons)}
+                {...register('visitPerson')}
+              />
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Allocate this enquiry from the start — these stay visible across the lead lifecycle.
+            </p>
+          </section>
+        </>
+      )}
 
       {isWalkIn && (
         <>

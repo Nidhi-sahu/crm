@@ -49,6 +49,9 @@ export const defaultEnquiryValues = {
   requirement: '',
   nextFollowupAt: '',
   remarks: '',
+  teleSalesExecutive: '',
+  salesPerson: '',
+  visitPerson: '',
 };
 
 const isoToInputDate = (iso) => {
@@ -77,6 +80,9 @@ export const enquiryToFormValues = (enquiry) => {
     requirement: enquiry.requirement || '',
     nextFollowupAt: isoToInputDate(enquiry.nextFollowupAt),
     remarks: enquiry.remarks || '',
+    teleSalesExecutive: enquiry.teleSalesExecutive?._id || enquiry.teleSalesExecutive || '',
+    salesPerson: enquiry.salesPerson?._id || enquiry.salesPerson || '',
+    visitPerson: enquiry.visitPerson?._id || enquiry.visitPerson || '',
   };
 };
 
@@ -109,6 +115,11 @@ export const formValuesToPayload = (values) => {
     payload.nextFollowupAt = new Date(values.nextFollowupAt).toISOString();
   }
   setIf('remarks', values.remarks?.trim());
+
+  // Assignment fields — always sent (null clears) so they can be set or removed.
+  payload.teleSalesExecutive = values.teleSalesExecutive || null;
+  payload.salesPerson = values.salesPerson || null;
+  payload.visitPerson = values.visitPerson || null;
 
   return payload;
 };

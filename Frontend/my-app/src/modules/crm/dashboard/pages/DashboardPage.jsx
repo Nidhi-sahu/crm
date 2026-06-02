@@ -124,16 +124,20 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ConversionFunnelChart section={conversionFunnel} onRetry={reloadConversionFunnel} />
+        {can(PERMISSIONS.report.view) && (
+          <ConversionFunnelChart section={conversionFunnel} onRetry={reloadConversionFunnel} />
+        )}
         <LeadSourceChart section={sourceBreakdown} onRetry={reloadSourceBreakdown} />
       </section>
 
-      <section>
-        <TeamPerformanceTable
-          section={salespersonPerformance}
-          onRetry={reloadSalespersonPerformance}
-        />
-      </section>
+      {can(PERMISSIONS.report.view) && (
+        <section>
+          <TeamPerformanceTable
+            section={salespersonPerformance}
+            onRetry={reloadSalespersonPerformance}
+          />
+        </section>
+      )}
     </div>
   );
 }

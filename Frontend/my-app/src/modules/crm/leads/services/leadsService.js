@@ -90,6 +90,23 @@ export const leadsService = {
       : [];
   },
 
+  async listSalesPersons() {
+    const rolesData = unwrap(await rolesAPI.list());
+    const roles = Array.isArray(rolesData?.items)
+      ? rolesData.items
+      : Array.isArray(rolesData)
+      ? rolesData
+      : [];
+    const spRole = roles.find((r) => r.name === 'Sales Person');
+    if (!spRole) return [];
+    const usersData = unwrap(await usersAPI.list({ roleId: spRole._id, limit: 100 }));
+    return Array.isArray(usersData?.items)
+      ? usersData.items
+      : Array.isArray(usersData)
+      ? usersData
+      : [];
+  },
+
   async markWon(id) {
     return extractLead(unwrap(await leadsAPI.markWon(id)));
   },
