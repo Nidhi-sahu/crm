@@ -11,6 +11,7 @@ export const LEAD_COLUMNS = [
   { key: 'actualDate', label: 'Actual Date', hideable: true, default: false },
   { key: 'actualValue', label: 'Actual Value', hideable: true, default: true },
   { key: 'status', label: 'Lead Status', hideable: true, default: true },
+  { key: 'reassign', label: 'Reassign', hideable: false, default: true },
   { key: 'temperature', label: 'Temperature', hideable: true, default: true },
   { key: 'action', label: 'Action', hideable: false, default: true, align: 'right' },
 ];

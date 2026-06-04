@@ -7,6 +7,7 @@ import { LeadsFiltersBar } from '../components/LeadsFiltersBar';
 import { LeadsTable } from '../components/LeadsTable';
 import { LeadDetailsModal } from '../components/LeadDetailsModal';
 import { LeadCommentsModal } from '../components/LeadCommentsModal';
+import { ReassignModal } from '../components/ReassignModal';
 import { Pagination } from '../../enquiries/components/Pagination';
 import { Alert } from '../../../../shared/components/Alert';
 import { Toast } from '../../../../shared/components/Toast';
@@ -15,7 +16,7 @@ import { LEAD_COLUMNS, COLUMN_STORAGE_KEY } from '../constants/leadColumns';
 const defaultVisibleKeys = LEAD_COLUMNS.filter((c) => c.default || !c.hideable).map((c) => c.key);
 
 export default function LeadsPage() {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const {
     items,
     pagination,
@@ -64,6 +65,7 @@ export default function LeadsPage() {
 
   const [detailsModal, setDetailsModal] = useState({ open: false, lead: null });
   const [commentsModal, setCommentsModal] = useState({ open: false, lead: null });
+  const [reassignModal, setReassignModal] = useState({ open: false, lead: null });
   const [toast, setToast] = useState({ open: false, tone: 'success', message: '' });
 
   if (!can(PERMISSIONS.lead.read)) {
@@ -79,6 +81,7 @@ export default function LeadsPage() {
   const canEdit = can(PERMISSIONS.lead.update);
   const canMoveStage = can(PERMISSIONS.lead.moveStage);
   const canAssign = can(PERMISSIONS.lead.assign);
+  const isAdmin = (user?.roleId?.name || user?.role?.name) === 'Administrator';
 
   const onView = (lead) => {
     clearSaveError();
@@ -89,6 +92,8 @@ export default function LeadsPage() {
     setCommentsModal({ open: true, lead });
     loadComments(lead._id);
   };
+
+  const onReassign = (lead) => setReassignModal({ open: true, lead });
 
   const toggleColumn = (key) => {
     setVisibleKeys((cols) =>
@@ -218,6 +223,8 @@ export default function LeadsPage() {
         isEmpty={isEmpty}
         onView={onView}
         onComment={onComment}
+        isAdmin={isAdmin}
+        onReassign={onReassign}
       />
 
       {!isLoading && pagination.total > 0 && (
@@ -268,6 +275,16 @@ export default function LeadsPage() {
         onAddComment={async (input) => {
           await addComment(input);
           setToast({ open: true, tone: 'success', message: 'Comment added' });
+        }}
+      />
+
+      <ReassignModal
+        open={reassignModal.open}
+        lead={reassignModal.lead}
+        onClose={() => setReassignModal({ open: false, lead: null })}
+        onReassigned={() => {
+          setToast({ open: true, tone: 'success', message: 'Lead reassigned' });
+          reload();
         }}
       />
 

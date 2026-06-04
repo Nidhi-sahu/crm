@@ -367,8 +367,8 @@ export function LeadDetailsModal({
     { key: 'timeline', label: 'Timeline' },
     { key: 'comms', label: 'Calls & WhatsApp', count: calls.length + whatsapps.length },
     { key: 'visits', label: 'Visits', count: visitReports.length },
-    { key: 'history', label: 'History' },
-  ];
+    isAdmin && { key: 'history', label: 'History' },
+  ].filter(Boolean);
 
   return (
     <>

@@ -42,6 +42,9 @@ export const leadsAPI = {
   markDropped(id, reason) {
     return axiosClient.post(`${BASE}/${id}/mark-dropped`, { reason });
   },
+  assign(id, payload) {
+    return axiosClient.post(`${BASE}/${id}/assign`, payload);
+  },
   assignVisit(id, payload) {
     return axiosClient.post(`${BASE}/${id}/assign-visit`, payload);
   },

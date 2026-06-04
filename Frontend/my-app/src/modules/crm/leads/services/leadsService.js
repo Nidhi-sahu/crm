@@ -115,6 +115,10 @@ export const leadsService = {
     return extractLead(unwrap(await leadsAPI.markDropped(id, reason)));
   },
 
+  async assign(leadId, assignedTo, reason) {
+    return extractLead(unwrap(await leadsAPI.assign(leadId, { assignedTo, reason })));
+  },
+
   async assignVisit(id, visitAssignedTo) {
     return extractLead(unwrap(await leadsAPI.assignVisit(id, { visitAssignedTo })));
   },

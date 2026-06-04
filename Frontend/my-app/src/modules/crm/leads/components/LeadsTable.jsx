@@ -10,8 +10,12 @@ export function LeadsTable({
   isEmpty,
   onView,
   onComment,
+  isAdmin,
+  onReassign,
 }) {
-  const visibleColumns = LEAD_COLUMNS.filter((c) => visibleKeys.includes(c.key));
+  const visibleColumns = LEAD_COLUMNS.filter(
+    (c) => (c.key !== 'reassign' || isAdmin) && (!c.hideable || visibleKeys.includes(c.key)),
+  );
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
@@ -63,6 +67,8 @@ export function LeadsTable({
                   visibleKeys={visibleKeys}
                   onView={onView}
                   onComment={onComment}
+                  isAdmin={isAdmin}
+                  onReassign={onReassign}
                 />
               ))}
           </tbody>

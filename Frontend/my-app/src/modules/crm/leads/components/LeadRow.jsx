@@ -34,6 +34,13 @@ const ChatIcon = () => (
   </svg>
 );
 
+const ReassignIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M3 8a9 9 0 0 1 15-3l3 3M21 16a9 9 0 0 1-15 3l-3-3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M21 3v5h-5M3 21v-5h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const findNextStage = (lead, stages) => {
   const stage = lead.currentStageId;
   if (!stage) return null;
@@ -49,7 +56,7 @@ const findNextStage = (lead, stages) => {
   return ordered.find((s) => s.order === cur.order + 1) || null;
 };
 
-export function LeadRow({ lead, stages, visibleKeys, onView, onComment }) {
+export function LeadRow({ lead, stages, visibleKeys, onView, onComment, isAdmin, onReassign }) {
   const enquiry = lead.enquiryId || {};
   const nextStage = findNextStage(lead, stages);
 
@@ -145,6 +152,24 @@ export function LeadRow({ lead, stages, visibleKeys, onView, onComment }) {
             <LeadStatusBadge status={lead.status} />
           </Cell>
         );
+      case 'reassign':
+        return (
+          <Cell>
+            {isAdmin && lead.assignedTo && lead.status === 'active' ? (
+              <button
+                type="button"
+                title="Reassign lead"
+                aria-label="Reassign lead"
+                onClick={() => onReassign?.(lead)}
+                className="rounded-md p-1.5 text-amber-600 hover:bg-amber-100 hover:text-amber-700"
+              >
+                <ReassignIcon />
+              </button>
+            ) : (
+              <span className="text-slate-300">—</span>
+            )}
+          </Cell>
+        );
       case 'temperature':
         return (
           <Cell>
@@ -187,9 +212,9 @@ export function LeadRow({ lead, stages, visibleKeys, onView, onComment }) {
 
   return (
     <tr className="transition-colors hover:bg-slate-50">
-      {LEAD_COLUMNS.filter((c) => visibleKeys.includes(c.key)).map((col) =>
-        cloneElement(renderCell(col.key), { key: col.key }),
-      )}
+      {LEAD_COLUMNS.filter(
+        (c) => (c.key !== 'reassign' || isAdmin) && (!c.hideable || visibleKeys.includes(c.key)),
+      ).map((col) => cloneElement(renderCell(col.key), { key: col.key }))}
     </tr>
   );
 }

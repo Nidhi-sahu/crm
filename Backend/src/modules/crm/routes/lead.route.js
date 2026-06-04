@@ -19,7 +19,7 @@ router.post('/walkin', rbac('lead:create'), validate(v.walkin), ctrl.createWalkI
 router.get('/', rbac('lead:read'), validate(v.list), ctrl.list);
 router.get('/:id', rbac('lead:read'), validate(v.byId), ctrl.getOne);
 router.get('/:id/history', rbac('lead:read'), validate(v.byId), ctrl.getHistory);
-router.get('/:id/assignments', rbac('lead:read'), validate(av.byId), assignCtrl.getHistory);
+router.get('/:id/assignments', adminOnly, validate(av.byId), assignCtrl.getHistory);
 
 router.get('/:id/visit-report', rbac('lead:read'), validate(v.byId), ctrl.listVisitReports);
 router.post('/:id/visit-report', rbac('lead:update'), validate(v.visitReport), ctrl.createVisitReport);
