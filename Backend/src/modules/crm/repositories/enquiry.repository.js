@@ -1,6 +1,16 @@
 const Enquiry = require('../models/enquiry.model');
+const { ENQUIRY_STATUS } = require('../../../constants/statuses');
 
 const POPULATE_USER = { select: 'name email' };
+
+// Enquiry statuses that mean an OPEN / in-process engagement — these block
+// re-entry of the same number (even if older leads were dropped/closed).
+const OPEN_ENQUIRY_STATUSES = [
+  ENQUIRY_STATUS.NEW,
+  ENQUIRY_STATUS.CONTACTED,
+  ENQUIRY_STATUS.HOLD,
+  ENQUIRY_STATUS.QUALIFIED,
+];
 
 const create = (data) => Enquiry.create(data);
 
@@ -63,6 +73,19 @@ const update = (id, data) =>
 const existsByPhone = async (phone, excludeId = null) => {
   if (!phone) return false;
   const filter = { clientPhone: String(phone).trim() };
+  if (excludeId) filter._id = { $ne: excludeId };
+  const doc = await Enquiry.exists(filter);
+  return !!doc;
+};
+
+// True when an OPEN / in-process enquiry (new/contacted/hold/qualified) exists
+// for this number — used to block re-entry regardless of older dropped leads.
+const hasOpenByPhone = async (phone, excludeId = null) => {
+  if (!phone) return false;
+  const filter = {
+    clientPhone: String(phone).trim(),
+    status: { $in: OPEN_ENQUIRY_STATUSES },
+  };
   if (excludeId) filter._id = { $ne: excludeId };
   const doc = await Enquiry.exists(filter);
   return !!doc;
@@ -140,6 +163,7 @@ module.exports = {
   searchIds,
   findIdsByMatch,
   existsByPhone,
+  hasOpenByPhone,
   findExistingPhones,
   bulkInsert,
   bulkAssign,

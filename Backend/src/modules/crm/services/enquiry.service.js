@@ -23,26 +23,28 @@ const followupReminder = (enquiry, actor) => {
 
 const create = async (data, actor) => {
   if (data.clientPhone && (await enquiryRepo.existsByPhone(data.clientPhone))) {
-    // Per #25 + #30: allow when existing is idle OR closed —
-    //   (a) idle LEAD (qualified but no activity), OR
-    //   (b) idle ENQUIRY (never qualified, no comments), OR
-    //   (c) CLOSED previous lead (dropped/lost/won) — show history.
-    const [idleLead, idleEnq, closedLead] = await Promise.all([
-      leadService.findIdlePreviousLead({
-        phone: data.clientPhone,
-        email: data.clientEmail,
-      }),
-      leadService.findIdlePreviousEnquiry({
-        phone: data.clientPhone,
-        email: data.clientEmail,
-      }),
-      leadService.findClosedPreviousLead({
-        phone: data.clientPhone,
-        email: data.clientEmail,
-      }),
-    ]);
-    if (!idleLead && !idleEnq && !closedLead) {
-      throw ApiError.conflict('An enquiry with this phone number already exists');
+    // BLOCK re-entry when the number is already an ACTIVE lead under a sales
+    // person. Once that lead is dropped/closed it is no longer active and
+    // re-entry is allowed (with the previous history shown — #30).
+    const activeLead = await leadService.findActivePreviousLead({
+      phone: data.clientPhone,
+      email: data.clientEmail,
+    });
+    if (activeLead) {
+      const ownerName = activeLead.assignedTo && activeLead.assignedTo.name;
+      throw ApiError.conflict(
+        `This customer is already an active lead${ownerName ? ` under ${ownerName}` : ''}.`,
+      );
+    }
+    // Block if any OPEN / in-process enquiry exists for this number — even when
+    // older leads were dropped (handles multiple drop → re-entry cycles).
+    // Re-entry is allowed only when there is NO open engagement; the previous
+    // closed-lead history is then shown (#30).
+    const hasOpenEnquiry = await enquiryRepo.hasOpenByPhone(data.clientPhone);
+    if (hasOpenEnquiry) {
+      throw ApiError.conflict(
+        'This customer already exists in the system. A new entry is allowed only after the lead is dropped.',
+      );
     }
   }
   const created = await enquiryRepo.create({ ...data, createdBy: actor._id });
@@ -235,16 +237,20 @@ const bulkAssign = async ({ assignments }, actor) => {
 const phoneExists = (phone, excludeId) => enquiryRepo.existsByPhone(phone, excludeId);
 
 // Returns { exists, idle } — idle:true when existing entry is non-blocking
-// (idle lead, idle enquiry, OR closed previous lead). New enquiry is allowed.
+// (stale enquiry OR closed previous lead → re-entry allowed with a warning).
+// An ACTIVE lead blocks re-entry entirely (idle:false).
 const phoneExistsDetailed = async (phone, excludeId) => {
   const exists = await enquiryRepo.existsByPhone(phone, excludeId);
   if (!exists) return { exists: false, idle: false };
-  const [idleLead, idleEnq, closedLead] = await Promise.all([
-    leadService.findIdlePreviousLead({ phone }),
-    leadService.findIdlePreviousEnquiry({ phone }),
-    leadService.findClosedPreviousLead({ phone }),
-  ]);
-  return { exists: true, idle: !!(idleLead || idleEnq || closedLead) };
+  const activeLead = await leadService.findActivePreviousLead({ phone });
+  if (activeLead) {
+    return { exists: true, idle: false, activeOwner: activeLead.assignedTo?.name || '' };
+  }
+  // idle:false (block) when an OPEN / in-process enquiry exists (even alongside
+  // older dropped leads); idle:true (allow with warning) only when there is no
+  // open engagement.
+  const hasOpenEnquiry = await enquiryRepo.hasOpenByPhone(phone, excludeId);
+  return { exists: true, idle: !hasOpenEnquiry };
 };
 
 const setStatus = (id, status, actor) => enquiryRepo.updateStatus(id, status, actor._id);

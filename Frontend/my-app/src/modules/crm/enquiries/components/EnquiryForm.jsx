@@ -149,7 +149,7 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
 
   const submit = handleSubmit((values) => {
     if (!isWalkIn && phoneDup === 'active') {
-      setError('clientPhone', { type: 'duplicate', message: 'This number already exists' });
+      setError('clientPhone', { type: 'duplicate', message: 'This number already exists — allowed only after the lead is dropped' });
       return;
     }
     if (isWalkIn) {
@@ -205,13 +205,13 @@ export function EnquiryForm({ formId, initialEnquiry = null, serverError, onSubm
               <Input
                 label="Phone Number *"
                 placeholder="+91 98765 43210"
-                error={errors.clientPhone?.message || (phoneDup === 'active' ? 'This number already exists' : undefined)}
+                error={errors.clientPhone?.message || (phoneDup === 'active' ? 'This number already exists — allowed only after the lead is dropped' : undefined)}
                 {...register('clientPhone', enquiryRules.clientPhone)}
               />
               {phoneDup === 'idle' && (
                 <p className="mt-1 text-[11px] font-medium text-amber-700">
-                  ⚠ This number was previously added but the lead is idle. You can still
-                  add — the new lead will show a “previously associated” note.
+                  ⚠ This number was previously added (closed/inactive lead). You can still
+                  add — the new lead will show the previous history.
                 </p>
               )}
             </div>

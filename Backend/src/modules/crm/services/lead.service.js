@@ -100,6 +100,28 @@ const findIdlePreviousLead = async ({ phone, email, excludeLeadId }) => {
   return null;
 };
 
+// Find ANY active lead for the same client (by phone or email). Used to BLOCK
+// re-entry of a number that is already an active lead under a sales person —
+// once that lead is dropped/closed it is no longer active and re-entry is allowed.
+const findActivePreviousLead = async ({ phone, email, excludeLeadId }) => {
+  const phoneTrim = (phone || '').trim();
+  const emailTrim = (email || '').trim().toLowerCase();
+  if (!phoneTrim && !emailTrim) return null;
+
+  const enquiryFilter = { $or: [] };
+  if (phoneTrim) enquiryFilter.$or.push({ clientPhone: phoneTrim });
+  if (emailTrim) enquiryFilter.$or.push({ clientEmail: emailTrim });
+  const matchingEnquiries = await enquiryRepo.findIdsByMatch(enquiryFilter);
+  if (!matchingEnquiries.length) return null;
+
+  const candidates = await leadRepo.findActiveByEnquiryIds(matchingEnquiries);
+  for (const lead of candidates) {
+    if (excludeLeadId && String(lead._id) === String(excludeLeadId)) continue;
+    return lead;
+  }
+  return null;
+};
+
 // Walk-in clients arrive at the site without prior enquiry/qualification.
 // Create everything in one call: Enquiry (no phone) + Lead at post-visit stage
 // (order 5 — Feedback Call) + StageHistory + VisitReport. Marked isWalkIn=true.
@@ -483,6 +505,7 @@ module.exports = {
   findIdlePreviousLead,
   findIdlePreviousEnquiry,
   findClosedPreviousLead,
+  findActivePreviousLead,
   list,
   getById,
   update,
