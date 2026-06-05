@@ -21,6 +21,7 @@ const update = {
     name: Joi.string().trim().min(2).max(100).optional(),
     email: email.optional(),
     phone: Joi.string().trim().min(7).max(20).optional().allow(''),
+    password: Joi.string().min(8).max(128).optional(),
     roleId: objectId.optional(),
     additionalRoleIds: Joi.array().items(objectId).optional(),
     additionalPermissions: Joi.array().items(Joi.string()).optional(),

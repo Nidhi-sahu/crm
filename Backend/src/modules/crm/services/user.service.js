@@ -113,8 +113,11 @@ const update = async (id, data, actor) => {
     if (!manager) throw ApiError.badRequest('Invalid managerId');
   }
 
+  // Allow an admin to change the user's login password from the edit form.
+  if (data.password) {
+    data.passwordHash = await hashUtil.hash(data.password);
+  }
   delete data.password;
-  delete data.passwordHash;
 
   const before = await userRepo.findById(id);
   if (!before) throw ApiError.notFound('User not found');

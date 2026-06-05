@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal } from '../../../../shared/components/Modal';
 import { Button } from '../../../../shared/components/Button';
@@ -17,6 +17,7 @@ export function UserFormModal({
   onSubmit,
 }) {
   const isEdit = mode === 'edit';
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -53,7 +54,7 @@ export function UserFormModal({
       subtitle={
         isEdit
           ? 'Update user details and roles.'
-          : 'Create a team member — a temporary password will be generated.'
+          : 'Create a team member — set their login password.'
       }
       width="max-w-md"
       footer={
@@ -92,6 +93,33 @@ export function UserFormModal({
           placeholder="+91 98765 43210"
           error={errors.phone?.message}
           {...register('phone', userRules.phone)}
+        />
+        <Input
+          label={isEdit ? 'Change Password' : 'Password *'}
+          type={showPassword ? 'text' : 'password'}
+          placeholder={isEdit ? 'Leave blank to keep current' : 'Min 8 characters'}
+          error={errors.password?.message}
+          rightSlot={
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              tabIndex={-1}
+              className="rounded p-1 text-slate-400 hover:text-slate-600"
+            >
+              {showPassword ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A9 9 0 0 1 21 12a9 9 0 0 1-1.7 2.7M6.1 6.1A9 9 0 0 0 3 12s3.5 7 9 7a8.6 8.6 0 0 0 3-.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+              )}
+            </button>
+          }
+          {...register('password', isEdit ? userRules.passwordOptional : userRules.password)}
         />
 
         <div>

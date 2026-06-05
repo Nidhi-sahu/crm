@@ -116,12 +116,8 @@ export default function UserManagementPage() {
         await update(modal.user._id, values);
         setToast({ open: true, tone: 'success', message: 'User updated' });
       } else {
-        const { tempPassword } = await create(values);
-        setToast({
-          open: true,
-          tone: 'success',
-          message: `User created · Temp password: ${tempPassword}`,
-        });
+        await create(values);
+        setToast({ open: true, tone: 'success', message: 'User created' });
       }
       setModal((m) => ({ ...m, open: false }));
       refreshAll();

@@ -20,6 +20,13 @@ export const userRules = {
       return true;
     },
   },
+  password: {
+    required: 'Password is required',
+    minLength: { value: 8, message: 'Minimum 8 characters' },
+  },
+  passwordOptional: {
+    validate: (v) => !v || v.length >= 8 || 'Minimum 8 characters',
+  },
   roleIds: {
     validate: (v) => (Array.isArray(v) && v.length > 0) || 'Select at least one role',
   },
@@ -29,6 +36,7 @@ export const defaultUserValues = {
   name: '',
   email: '',
   phone: '',
+  password: '',
   roleIds: [],
 };
 
@@ -41,6 +49,7 @@ export const userToFormValues = (user) => {
     name: user.name || '',
     email: user.email || '',
     phone: user.phone || '',
+    password: '',
     roleIds: [...new Set(roleIds.map(String))],
   };
 };

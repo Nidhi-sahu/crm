@@ -1,6 +1,5 @@
 import { usersAPI } from './usersAPI';
 import { rolesAPI } from './rolesAPI';
-import { generateTempPassword } from '../utils/userFormatters';
 import { ROLE_NAMES } from '../constants/userRoles';
 
 const unwrap = (res) => res?.data?.data ?? res?.data ?? null;
@@ -63,18 +62,17 @@ export const usersService = {
   },
 
   async create(values) {
-    const tempPassword = generateTempPassword();
     const roleIds = [...new Set((values.roleIds || []).filter(Boolean))];
     const payload = {
       name: values.name.trim(),
       email: values.email.trim(),
       roleId: roleIds[0],
       additionalRoleIds: roleIds.slice(1),
-      password: tempPassword,
+      password: values.password.trim(),
     };
     if (values.phone?.trim()) payload.phone = values.phone.trim();
     const user = extractUser(unwrap(await usersAPI.create(payload)));
-    return { user, tempPassword };
+    return { user };
   },
 
   async update(id, values) {
@@ -86,6 +84,7 @@ export const usersService = {
       additionalRoleIds: roleIds.slice(1),
       phone: values.phone?.trim() || '',
     };
+    if (values.password?.trim()) payload.password = values.password.trim();
     return extractUser(unwrap(await usersAPI.update(id, payload)));
   },
 
